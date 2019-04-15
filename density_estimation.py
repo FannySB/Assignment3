@@ -73,6 +73,7 @@ def estimatedJSD(x, y):
         phi_array.append(cpt)
 
     for epoch in range(epoch):
+        ave_loss = 0
         for phi in phi_array:
             optimizer.zero_grad()
             phi = 1
@@ -90,6 +91,14 @@ def estimatedJSD(x, y):
             total_x = sum_x/(2 * batch_size)
             total_y = sum_y/(2 * batch_size)
             loss = - (total_x + total_y + math.log(2, math.e))
+            ave_loss += loss.data[0]
+            loss.backward()
+            optimizer.step()
+        
+        ave_loss /= len(phi_array)
+        print('epoch: {}, train loss: {:.6f}'.format(
+            epoch, ave_loss))
+
 
 def estimatedWasserstein():
     return 0
