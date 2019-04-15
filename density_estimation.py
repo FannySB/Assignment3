@@ -10,7 +10,13 @@ Created on Sat Mar 23 13:20:15 2019
 from __future__ import print_function
 import numpy as np
 import torch 
+import torch.optim as optim
+import torch.nn as nn
 import matplotlib.pyplot as plt
+import samplers as samplers
+import math
+
+use_cuda = torch.cuda.is_available()
 
 # plot p0 and p1
 plt.figure()
@@ -29,11 +35,76 @@ plt.plot(f(torch.from_numpy(xx)).numpy(), d(torch.from_numpy(xx)).numpy()**(-1)*
 plt.plot(xx, N(xx))
 
 
+
 ############### import the sampler ``samplers.distribution4'' 
 ############### train a discriminator on distribution4 and standard gaussian
 ############### estimate the density of distribution4
 
 #######--- INSERT YOUR CODE BELOW ---#######
+batch_size = 512
+
+class MLPNet(nn.Module):
+    def __init__(self):
+        super(MLPNet, self).__init__()
+        self.fc1 = nn.Linear(batch_size, 500)
+        self.fc2 = nn.Linear(500, 256)
+        self.fc3 = nn.Linear(256, 128)
+
+    def forward(self, x):
+        x = x.view(-1, batch_size)
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = self.fc3(x)
+        x = F.sigmoid(x)
+        return x
+
+
+
+
+def estimatedJSD(x, y):
+    model = MLP()
+    optimizer = optim.SGD(model.parameters(), lr=1e-3)
+
+    epoch = 10
+    cpt = -1.0
+    phi_array = []
+    while not cpt > 1.0:
+        cpt += 0.1
+        phi_array.append(cpt)
+
+    for epoch in range(epoch):
+        for phi in phi_array:
+            optimizer.zero_grad()
+            phi = 1
+            x = samplers.distribution1(0,batch_size)
+            y = samplers.distribution1(phi, batch_size)
+
+            out_x = model(x)
+            out_y = model(y)
+
+            for cpt in range(batch_size):
+                total = x[cpt] + y[cpt]
+                sum_y = math.log(1 - out_y[cpt])
+                sum_x = math.log(out_x[cpt])
+
+            total_x = sum_x/(2 * batch_size)
+            total_y = sum_y/(2 * batch_size)
+            loss = - (total_x + total_y + math.log(2, math.e))
+
+def estimatedWasserstein():
+    return 0
+
+
+
+def D(x):
+    #MLP 
+    #call obj fct
+    y= 0 #(0,1)
+    return y
+
+def JSD(x, y):
+
+
  
 
 
