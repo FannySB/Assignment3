@@ -9,7 +9,7 @@ Created on Sat Mar 23 13:20:15 2019
 
 from __future__ import print_function
 import numpy as np
-import torch 
+import torch
 import torch.optim as optim
 import torch.nn as nn
 import matplotlib.pyplot as plt
@@ -36,7 +36,7 @@ plt.plot(xx, N(xx))
 
 
 
-############### import the sampler ``samplers.distribution4'' 
+############### import the sampler ``samplers.distribution4''
 ############### train a discriminator on distribution4 and standard gaussian
 ############### estimate the density of distribution4
 
@@ -59,9 +59,7 @@ class MLPNet(nn.Module):
         return x
 
 
-
-
-def estimatedJSD(x, y):
+def estimatedJSD():
     model = MLP()
     optimizer = optim.SGD(model.parameters(), lr=1e-3)
 
@@ -94,7 +92,7 @@ def estimatedJSD(x, y):
             ave_loss += loss.data[0]
             loss.backward()
             optimizer.step()
-        
+
         ave_loss /= len(phi_array)
         print('epoch: {}, train loss: {:.6f}'.format(
             epoch, ave_loss))
@@ -106,15 +104,15 @@ def estimatedWasserstein():
 
 
 def D(x):
-    #MLP 
+    #MLP
     #call obj fct
     y= 0 #(0,1)
     return y
 
-def JSD(x, y):
+test = estimatedJSD()
 
 
- 
+
 
 
 
@@ -132,7 +130,7 @@ def JSD(x, y):
 
 
 ############### plotting things
-############### (1) plot the output of your trained discriminator 
+############### (1) plot the output of your trained discriminator
 ############### (2) plot the estimated density contrasted with the true density
 
 
@@ -143,21 +141,10 @@ plt.subplot(1,2,1)
 plt.plot(xx,r)
 plt.title(r'$D(x)$')
 
-estimate = np.ones_like(xx)*0.2 # estimate the density of distribution4 (on xx) using the discriminator; 
+estimate = np.ones_like(xx)*0.2 # estimate the density of distribution4 (on xx) using the discriminator;
                                 # replace "np.ones_like(xx)*0." with your estimate
 plt.subplot(1,2,2)
 plt.plot(xx,estimate)
 plt.plot(f(torch.from_numpy(xx)).numpy(), d(torch.from_numpy(xx)).numpy()**(-1)*N(xx))
 plt.legend(['Estimated','True'])
 plt.title('Estimated vs True')
-
-
-
-
-
-
-
-
-
-
-
