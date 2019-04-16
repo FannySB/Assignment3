@@ -27,14 +27,14 @@ class MLPNet(nn.Module):
         x = F.relu(self.fc2(x))
         x = self.fc3(x)
         #x = torch.log(torch.tensor(2).float()) - torch.log(1 + torch.exp(-x))
-        #x = F.sigmoid(x)
+        x = F.sigmoid(x)
         return x
 
 
 
 def estimatedJSD(epoch=10, batch_size=512, phi=0.9):
     model = MLPNet()
-    optimizer = optim.SGD(model.parameters(), lr=1e-3)
+    optimizer = optim.Adam(model.parameters(), lr=1e-3)
 
 
     for epoch in range(epoch):
@@ -87,7 +87,7 @@ phi_ = []
 while not phi > 1.0:
     print(phi)
     phi_.append(phi)
-    model, loss = estimatedJSD(batch_size=batch_size, epoch=500, phi=phi)
+    model, loss = estimatedJSD(batch_size=batch_size, epoch=1000, phi=phi)
     losses.append(-loss.data[0])
 
     x_new = samplers.distribution1(0, batch_size)
