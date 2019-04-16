@@ -67,11 +67,13 @@ def estimatedJSD(epoch=10, batch_size=512, phi=0.9):
         loss.backward()
         optimizer.step()
 
+        loss_print = -loss
+
         if(epoch%50) == 0:
             print('epoch: {}, train loss: {:.6f}'.format(
-                epoch, loss))
+                epoch, loss_print))
 
-    return model, loss
+    return model, loss_print
 
 def compute_js(D, batch_size):
     sum_x= torch.sum(torch.log(D))
@@ -84,26 +86,26 @@ phi = -1.0
 js = []
 losses = []
 phi_ = []
+
 while not phi > 1.0:
     print(phi)
     phi_.append(phi)
     model, loss = estimatedJSD(batch_size=batch_size, epoch=1000, phi=phi)
-    losses.append(-loss.data[0])
-
-    x_new = samplers.distribution1(0, batch_size)
-    for input_x_new in x_new:
-        D_star = model(Variable(torch.from_numpy(input_x_new)).float())
-        break
-
-    js.append(compute_js(D_star, batch_size).data[0])
+    losses.append(loss.data[0])
     phi += 0.1
+    #x_new = samplers.distribution1(0, batch_size)
+    #for input_x_new in x_new:
+        #D_star = model(Variable(torch.from_numpy(input_x_new)).float())
+        #break
+
+    #js.append(compute_js(D_star, batch_size).data[0])
 
 
-print('js', js)
 print('losses', losses)
-plt.plot(phi_, js)
-plt.savefig('js.png')
 plt.clf()
 plt.plot(phi_, losses)
-plt.savefig('losses.png')
+plt.title('JSD in terms of phi')
+plt.xlabel('Phi values')
+plt.ylabel('JSD')
+plt.savefig('JSD.png')
 print('==============End============')
