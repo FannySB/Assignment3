@@ -14,7 +14,7 @@ import pdb
 parser = argparse.ArgumentParser(description='VAE MNIST Example')
 parser.add_argument('--batch-size', type=int, default=128, metavar='N',
                     help='input batch size for training (default: 128)')
-parser.add_argument('--epochs', type=int, default=10, metavar='N',
+parser.add_argument('--epochs', type=int, default=20, metavar='N',
                     help='number of epochs to train (default: 10)')
 parser.add_argument('--no-cuda', action='store_true', default=False,
                     help='enables CUDA training')
@@ -48,15 +48,55 @@ class VAE(nn.Module):
     def __init__(self):
         super(VAE, self).__init__()
 
-        self.fc1 = nn.Linear(784, 400)
-        self.fc21 = nn.Linear(400, 20)
-        self.fc22 = nn.Linear(400, 20)
-        self.fc3 = nn.Linear(20, 400)
-        self.fc4 = nn.Linear(400, 784)
+        # self.fc1 = nn.Linear(784, 400)
+        # self.fc21 = nn.Linear(400, 20)
+        # self.fc22 = nn.Linear(400, 20)
+        # self.fc3 = nn.Linear(20, 400)
+        # self.fc4 = nn.Linear(400, 784)
+
+        self.encoder = nn.Sequential(
+            nn.Conv2d(1, 32, kernel_size=3),
+            nn.ELU(),
+            nn.AvgPool2d(kernel_size=2, stride=2),
+            nn.Conv2d(32, 64, kernel_size=3),
+            nn.ELU(),
+            nn.AvgPool2d(kernel_size=2, stride=2),
+            nn.Conv2d(64, 256, kernel_size=5),
+            nn.ELU(),
+        )
+            # nn.Linear(256, 2*100)
+
+        
+        self.encoder_out1 = nn.Linear(256, 100)
+        self.encoder_out2 = nn.Linear(256, 100)
+        self.decoder_lin = nn.Linear(100, 256)
+
+        self.decoder1 = nn.Sequential(
+            nn.Linear(100, 256),
+            nn.ELU(),
+            nn.Conv2d(256, 64, kernel_size=5, padding=4),
+            nn.ELU(),
+        )
+            # nn.inter(scale_factor=2),  # mode='bilinear'),
+            # Interpolate(scale_factor=2, mode='bilinear'),
+        self.decoder2 = nn.Sequential(
+            nn.Conv2d(64, 32, kernel_size=3, padding=2),
+            nn.ELU(),
+        )
+            # nn.UpsamplingBilinear2d(scale_factor=2),  # mode='bilinear'),
+        self.decoder3 = nn.Sequential(
+            nn.Conv2d(32, 16, kernel_size=3, padding=2),
+            nn.ELU(),
+            nn.Conv2d(16, 1, kernel_size=3, padding=2),
+            nn.Sigmoid() # ????
+        )
 
     def encode(self, x):
-        h1 = F.relu(self.fc1(x))
-        return self.fc21(h1), self.fc22(h1)
+        # h1 = F.relu(self.fc1(x))
+        # return self.fc21(h1), self.fc22(h1)
+        x = x.view(-1, 1, 28, 28)
+        x = self.encoder(x)
+        return self.encoder_out1(x), self.encoder_out2(x)
 
     def reparameterize(self, mu, logvar):
         std = torch.exp(0.5*logvar)
@@ -64,8 +104,15 @@ class VAE(nn.Module):
         return mu + eps*std
 
     def decode(self, z):
-        h3 = F.relu(self.fc3(z))
-        return torch.sigmoid(self.fc4(h3))
+        # h3 = F.relu(self.fc3(z))
+        # return torch.sigmoid(self.fc4(h3))
+        z = self.decoder_lin(z)
+        z = self.decoder1(z)
+        z = F.interpolate(z, scale_factor=2, mode='bilinear')
+        z = self.decoder2(z)
+        z = F.interpolate(z, scale_factor=2, mode='bilinear')
+        return self.decoder3(z)
+
 
     def forward(self, x):
         mu, logvar = self.encode(x.view(-1, 784))
@@ -79,12 +126,10 @@ optimizer = optim.Adam(model.parameters(), lr=1e-3)
 
 # Reconstruction + KL divergence losses summed over all elements and batch
 def loss_function(recon_x, x, mu, logvar):
-    # BCE = -F.binary_cross_entropy(F.softmax(recon_x), x.view(-1, 784), reduction='sum')
-    BCE = F.binary_cross_entropy(recon_x, x.view(-1, 784), reduction='sum')
+    BCE = F.binary_cross_entropy(F.softmax(recon_x), x.view(-1, 784), reduction='sum')
+    # BCE = F.binary_cross_entropy(recon_x, x.view(-1, 784), reduction='sum')
+    # BCE = F.binary_cross_entropy(recon_x, x.view(-1, 784), reduction='sum')
 
-    # see Appendix B from VAE paper:
-    # Kingma and Welling. Auto-Encoding Variational Bayes. ICLR, 2014
-    # https://arxiv.org/abs/1312.6114
     # 0.5 * sum(1 + log(sigma^2) - mu^2 - sigma^2)
     KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
 
@@ -96,7 +141,7 @@ def train(epoch):
     model.train()
     train_loss = 0
 
-    pdb.set_trace()
+    # pdb.set_trace()
     for batch_idx, (data) in enumerate(train_loader):
         data = data.to(device)
         optimizer.zero_grad()
@@ -118,8 +163,9 @@ def train(epoch):
 def test(epoch):
     model.eval()
     test_loss = 0
+
     with torch.no_grad():
-        for i, (data, _) in enumerate(test_loader):
+        for i, (data) in enumerate(test_loader):
             data = data.to(device)
             recon_batch, mu, logvar = model(data)
             test_loss += loss_function(recon_batch, data, mu, logvar).item()
@@ -127,8 +173,7 @@ def test(epoch):
                 n = min(data.size(0), 8)
                 comparison = torch.cat([data[:n],
                                       recon_batch.view(args.batch_size, 1, 28, 28)[:n]])
-                save_image(comparison.cpu(),
-                         'results/reconstruction_' + str(epoch) + '.png', nrow=n)
+                # save_image(comparison.cpu(), 'results/reconstruction_' + str(epoch) + '.png', nrow=n)
 
     test_loss /= len(test_loader.dataset)
     print('====> Test set loss: {:.4f}'.format(test_loss))
@@ -140,5 +185,5 @@ if __name__ == "__main__":
         with torch.no_grad():
             sample = torch.randn(64, 20).to(device)
             sample = model.decode(sample).cpu()
-            save_image(sample.view(64, 1, 28, 28),
-                       'results/sample_' + str(epoch) + '.png')
+            # save_image(sample.view(64, 1, 28, 28),
+                    #    'results/sample_' + str(epoch) + '.png')
