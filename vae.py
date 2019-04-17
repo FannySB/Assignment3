@@ -18,6 +18,8 @@ from torch.functional import F
 from torch.optim import Adam
 from torch.autograd import Variable
 
+from dataloader import load_mnist
+
 import pdb
 
 import matplotlib
@@ -44,13 +46,16 @@ torch.manual_seed(args.seed)
 device = torch.device("cuda" if args.cuda else "cpu")
 
 kwargs = {'num_workers': 1, 'pin_memory': True} if args.cuda else {}
-train_loader = torch.utils.data.DataLoader(
-    datasets.MNIST('../data', train=True, download=True,
-                   transform=transforms.ToTensor()),
-    batch_size=batch_size, shuffle=True, **kwargs)
-test_loader = torch.utils.data.DataLoader(
-    datasets.MNIST('../data', train=False, transform=transforms.ToTensor()),
-    batch_size=batch_size, shuffle=True, **kwargs)
+# train_loader = torch.utils.data.DataLoader(
+#     datasets.MNIST('../data', train=True, download=True,
+#                    transform=transforms.ToTensor()),
+#     batch_size=batch_size, shuffle=True, **kwargs)
+# test_loader = torch.utils.data.DataLoader(
+#     datasets.MNIST('../data', train=False, transform=transforms.ToTensor()),
+#     batch_size=batch_size, shuffle=True, **kwargs)
+
+train_loader, val_loader, test_loader = load_mnist(batch_size)
+
 
 
 def get_data_loader(dataset_location, batch_size):
