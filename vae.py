@@ -212,6 +212,7 @@ class VAE3(nn.Module):
         self.conv1 = nn.Conv2d(in_channels=1, out_channels=64, kernel_size=(4, 4), padding=(15, 15),
                                stride=2)  # This padding keeps the size of the image same, i.e. same padding
         self.conv2 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=(4, 4), padding=(15, 15), stride=2)
+
         self.fc11 = nn.Linear(in_features=128 * 28 * 28, out_features=1024)
         self.fc12 = nn.Linear(in_features=1024, out_features=100)
 
@@ -319,8 +320,8 @@ class VAE3(nn.Module):
         KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
         # Normalise by same number of elements as in reconstruction
         KLD /= batch_size
-        # print ("BCE : ", BCE)
-        # print ("KLD : ", KLD)
+        print ("BCE : ", BCE)
+        print ("KLD : ", KLD)
 
         return BCE + KLD
 
