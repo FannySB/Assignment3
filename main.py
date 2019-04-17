@@ -72,7 +72,6 @@ class VAE(nn.Module):
         self.decoder_lin = nn.Linear(100, 256)
 
         self.decoder1 = nn.Sequential(
-            nn.Linear(100, 256),
             nn.ELU(),
             nn.Conv2d(256, 64, kernel_size=5, padding=4),
             nn.ELU(),
@@ -96,6 +95,7 @@ class VAE(nn.Module):
         # return self.fc21(h1), self.fc22(h1)
         x = x.view(-1, 1, 28, 28)
         x = self.encoder(x)
+        x = x.view(-1, 256)
         return self.encoder_out1(x), self.encoder_out2(x)
 
     def reparameterize(self, mu, logvar):
@@ -107,10 +107,11 @@ class VAE(nn.Module):
         # h3 = F.relu(self.fc3(z))
         # return torch.sigmoid(self.fc4(h3))
         z = self.decoder_lin(z)
+        z = z.view(-1, 256, 1, 1)
         z = self.decoder1(z)
-        z = F.interpolate(z, scale_factor=2, mode='bilinear')
+        z = F.interpolate(z, scale_factor=2, mode='bilinear', align_corners = True)
         z = self.decoder2(z)
-        z = F.interpolate(z, scale_factor=2, mode='bilinear')
+        z = F.interpolate(z, scale_factor=2, mode='bilinear', align_corners = True)
         return self.decoder3(z)
 
 
