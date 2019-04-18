@@ -2,3 +2,7 @@
 \.vscode/
 
 __pycache__/
+
+vae_mnist/binarized_mnist/
+
+vae_svhn/data/
