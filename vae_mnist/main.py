@@ -106,6 +106,8 @@ class VAE(nn.Module):
     def decode(self, z):
         # h3 = F.relu(self.fc3(z))
         # return torch.sigmoid(self.fc4(h3))
+        
+        # z = z.view(-1, 256)
         z = self.decoder_lin(z)
         z = z.view(-1, 256, 1, 1)
         z = self.decoder1(z)
@@ -127,8 +129,8 @@ optimizer = optim.Adam(model.parameters(), lr=1e-3)
 
 # Reconstruction + KL divergence losses summed over all elements and batch
 def loss_function(recon_x, x, mu, logvar):
-    BCE = F.binary_cross_entropy(F.softmax(recon_x), x.view(-1, 784), reduction='sum')
-    # BCE = F.binary_cross_entropy(recon_x, x.view(-1, 784), reduction='sum')
+    # BCE = F.binary_cross_entropy(F.softmax(recon_x), x.view(-1, 784), reduction='sum')
+    BCE = F.binary_cross_entropy(recon_x, x.view(-1, 784), reduction='sum')
     # BCE = F.binary_cross_entropy(recon_x, x.view(-1, 784), reduction='sum')
 
     # 0.5 * sum(1 + log(sigma^2) - mu^2 - sigma^2)
@@ -183,8 +185,8 @@ if __name__ == "__main__":
     for epoch in range(1, args.epochs + 1):
         train(epoch)
         test(epoch)
-        with torch.no_grad():
-            sample = torch.randn(64, 20).to(device)
-            sample = model.decode(sample).cpu()
+        # with torch.no_grad():
+            # sample = torch.randn(100, 256).to(device)
+            # sample = model.decode(sample).to(device)
             # save_image(sample.view(64, 1, 28, 28),
                     #    'results/sample_' + str(epoch) + '.png')
