@@ -66,7 +66,7 @@ def get_data_loader(dataset_location, batch_size):
     for splitname in ["train", "valid", "test"]:
         filename = "binarized_mnist_%s.amat" % splitname
         filepath = os.path.join(dataset_location, filename)
-        # utils.download_url(URL + filename, dataset_location)
+        #utils.download_url(URL + filename, dataset_location, filename, md5=None)
         with open(filepath) as f:
             lines = f.readlines()
         x = lines_to_np_array(lines).astype('float32')

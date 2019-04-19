@@ -4,6 +4,8 @@ import torch
 import torch.utils.data
 from torch import nn, optim
 from torch.nn import functional as F
+from VAE import VAE
+from numpy.linalg import inv
 from torchvision import datasets, transforms
 from torchvision.utils import save_image
 
@@ -15,7 +17,7 @@ parser = argparse.ArgumentParser(description='VAE MNIST Example')
 parser.add_argument('--batch-size', type=int, default=128, metavar='N',
                     help='input batch size for training (default: 128)')
 parser.add_argument('--epochs', type=int, default=20, metavar='N',
-                    help='number of epochs to train (default: 10)')
+                    help='number of epochs to train (default: 20)')
 parser.add_argument('--no-cuda', action='store_true', default=False,
                     help='enables CUDA training')
 parser.add_argument('--seed', type=int, default=1, metavar='S',
@@ -23,6 +25,11 @@ parser.add_argument('--seed', type=int, default=1, metavar='S',
 parser.add_argument('--log-interval', type=int, default=10, metavar='N',
                     help='how many batches to wait before logging training status')
 args = parser.parse_args()
+
+
+
+
+
 args.cuda = not args.no_cuda and torch.cuda.is_available()
 
 torch.manual_seed(args.seed)
@@ -44,84 +51,6 @@ train_loader = splitdata[0]
 val_loader =  splitdata[1]
 test_loader =  splitdata[2]
 
-class VAE(nn.Module):
-    def __init__(self):
-        super(VAE, self).__init__()
-
-        # self.fc1 = nn.Linear(784, 400)
-        # self.fc21 = nn.Linear(400, 20)
-        # self.fc22 = nn.Linear(400, 20)
-        # self.fc3 = nn.Linear(20, 400)
-        # self.fc4 = nn.Linear(400, 784)
-
-        self.encoder = nn.Sequential(
-            nn.Conv2d(1, 32, kernel_size=3),
-            nn.ELU(),
-            nn.AvgPool2d(kernel_size=2, stride=2),
-            nn.Conv2d(32, 64, kernel_size=3),
-            nn.ELU(),
-            nn.AvgPool2d(kernel_size=2, stride=2),
-            nn.Conv2d(64, 256, kernel_size=5),
-            nn.ELU(),
-        )
-            # nn.Linear(256, 2*100)
-
-        
-        self.encoder_out1 = nn.Linear(256, 100)
-        self.encoder_out2 = nn.Linear(256, 100)
-        self.decoder_lin = nn.Linear(100, 256)
-
-        self.decoder1 = nn.Sequential(
-            nn.ELU(),
-            nn.Conv2d(256, 64, kernel_size=5, padding=4),
-            nn.ELU(),
-        )
-            # nn.inter(scale_factor=2),  # mode='bilinear'),
-            # Interpolate(scale_factor=2, mode='bilinear'),
-        self.decoder2 = nn.Sequential(
-            nn.Conv2d(64, 32, kernel_size=3, padding=2),
-            nn.ELU(),
-        )
-            # nn.UpsamplingBilinear2d(scale_factor=2),  # mode='bilinear'),
-        self.decoder3 = nn.Sequential(
-            nn.Conv2d(32, 16, kernel_size=3, padding=2),
-            nn.ELU(),
-            nn.Conv2d(16, 1, kernel_size=3, padding=2),
-            nn.Sigmoid() # ????
-        )
-
-    def encode(self, x):
-        # h1 = F.relu(self.fc1(x))
-        # return self.fc21(h1), self.fc22(h1)
-        x = x.view(-1, 1, 28, 28)
-        x = self.encoder(x)
-        x = x.view(-1, 256)
-        return self.encoder_out1(x), self.encoder_out2(x)
-
-    def reparameterize(self, mu, logvar):
-        std = torch.exp(0.5*logvar)
-        eps = torch.randn_like(std)
-        return mu + eps*std
-
-    def decode(self, z):
-        # h3 = F.relu(self.fc3(z))
-        # return torch.sigmoid(self.fc4(h3))
-        
-        z = self.decoder_lin(z)
-        z = z.view(-1, 256, 1, 1)
-        z = self.decoder1(z)
-        z = F.interpolate(z, scale_factor=2, mode='bilinear', align_corners = True)
-        z = self.decoder2(z)
-        z = F.interpolate(z, scale_factor=2, mode='bilinear', align_corners = True)
-        return self.decoder3(z)
-
-
-    def forward(self, x):
-        mu, logvar = self.encode(x.view(-1, 784))
-        z = self.reparameterize(mu, logvar)
-        return self.decode(z), mu, logvar
-
-
 model = VAE().to(device)
 optimizer = optim.Adam(model.parameters(), lr=1e-3)
 
@@ -136,12 +65,11 @@ def loss_function(recon_x, x, mu, logvar):
     return BCE + KLD
     # return -(BCE - KLD)
 
-
+# Training function
 def train(epoch):
     model.train()
     train_loss = 0
 
-    # pdb.set_trace()
     for batch_idx, (data) in enumerate(train_loader):
         data = data.to(device)
         optimizer.zero_grad()
@@ -159,7 +87,7 @@ def train(epoch):
     print('====> Epoch: {} Average loss: {:.4f}'.format(
           epoch, train_loss / len(train_loader.dataset)))
 
-
+# Testing function
 def test(epoch):
     model.eval()
     test_loss = 0
@@ -178,7 +106,29 @@ def test(epoch):
     test_loss /= len(test_loader.dataset)
     print('====> Test set loss: {:.4f}'.format(test_loss))
 
+
+# Function to evaluate log-likelihood of p(x) with variational autoencoders
+def loglike(model, x, z):
+
+    N = lambda x: np.exp(-x ** 2 / 2.) / ((2 * np.pi) ** 0.5)
+    n = np.size(z, axis=2)
+    K = np.size(z, axis=1)
+    exp = np.exp((x-mu).T.dot(inv(np.diag(logvar.exp())))).dot((x-mu))
+    denom = (((2 * np.pi)**(n))* np.linalg.det(logvar.exp()))**(0.5)
+    gauss_z = exp / denom
+
+    bce = F.binary_cross_entropy(z, np.repeat(x.view(-1, 784), K, axis=1), reduction='sum')
+
+    g_z = np.log(bce) + np.log(N(z)) - np.log(gauss_z)
+
+    logli = g_z.max() + np.log( (np.exp(g_z - g_z.max())).sum(axis=1) ) - np.log(K)
+
+    return logli
+
+
+
 if __name__ == "__main__":
+
     for epoch in range(1, args.epochs + 1):
         train(epoch)
         test(epoch)
