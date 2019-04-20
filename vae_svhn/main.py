@@ -8,6 +8,8 @@ from torch.nn import functional as F
 from torchvision import datasets, transforms
 from torchvision.utils import save_image
 import random
+import matplotlib.pyplot as plt
+
 
 # from dataloader import get_data_loader
 from dataloader import dataloader
@@ -17,7 +19,7 @@ import pdb
 parser = argparse.ArgumentParser(description='VAE MNIST Example')
 parser.add_argument('--batch-size', type=int, default=64, metavar='N',
                     help='input batch size for training (default: 128)')
-parser.add_argument('--epochs', type=int, default=100, metavar='N',
+parser.add_argument('--epochs', type=int, default=20, metavar='N',
                     help='number of epochs to train (default: 10)')
 parser.add_argument('--no-cuda', action='store_true', default=False,
                     help='enables CUDA training')
@@ -64,39 +66,6 @@ sample_z = torch.randn((batch_size, z_dim)).to(device)
 
 train_loader, val_loader, test_loader = dataloader(dataset, input_size, batch_size)
 
-
-# class generator(nn.Module):
-#     # Network Architecture is exactly same as in infoGAN (https://arxiv.org/abs/1606.03657)
-#     # Architecture : FC1024_BR-FC7x7x128_BR-(64)4dc2s_BR-(1)4dc2s_S
-#     def __init__(self, input_dim=100, output_dim=1, input_size=32):
-#         super(generator, self).__init__()
-#         self.input_dim = input_dim
-#         self.output_dim = output_dim
-#         self.input_size = input_size
-
-#         self.fc = nn.Sequential(
-#             nn.Linear(self.input_dim, 1024),
-#             nn.BatchNorm1d(1024),
-#             nn.ReLU(),
-#             nn.Linear(1024, 128 * (self.input_size // 4) * (self.input_size // 4)),
-#             nn.BatchNorm1d(128 * (self.input_size // 4) * (self.input_size // 4)),
-#             nn.ReLU(),
-#         )
-#         self.deconv = nn.Sequential(
-#             nn.ConvTranspose2d(128, 64, 4, 2, 1),
-#             nn.BatchNorm2d(64),
-#             nn.ReLU(),
-#             nn.ConvTranspose2d(64, self.output_dim, 4, 2, 1),
-#             nn.Tanh(),
-#         )
-#         utils.initialize_weights(self)
-
-#     def forward(self, input):
-#         x = self.fc(input)
-#         x = x.view(-1, 128, (self.input_size // 4), (self.input_size // 4))
-#         x = self.deconv(x)
-#         return x
-
 class VAE(nn.Module):
     def __init__(self, input_dim=100, output_dim=3, input_size=32):
         super(VAE, self).__init__()
@@ -114,22 +83,8 @@ class VAE(nn.Module):
         )        
         self.encoder_out1 = nn.Linear(1024, z_dim)
         self.encoder_out2 = nn.Linear(1024, z_dim)
-        # self.decoder_lin = nn.Linear(z_dim, 256)
-        # self.decoder1 = nn.Sequential(
-        #     nn.ELU(),
-        #     nn.Conv2d(256, 64, kernel_size=5, padding=4),
-        #     nn.ELU(),
-        # )
-        # self.decoder2 = nn.Sequential(
-        #     nn.Conv2d(64, 32, kernel_size=3, padding=2),
-        #     nn.ELU(),
-        # )
-        # self.decoder3 = nn.Sequential(
-        #     nn.Conv2d(32, 16, kernel_size=3, padding=2),
-        #     nn.ELU(),
-        #     nn.Conv2d(16, 3, kernel_size=3, padding=2),
-        #     nn.Sigmoid() # ????
-        # )
+
+
         self.input_dim = input_dim
         self.output_dim = output_dim
         self.input_size = input_size
@@ -147,7 +102,7 @@ class VAE(nn.Module):
             nn.BatchNorm2d(64),
             nn.ReLU(),
             nn.ConvTranspose2d(64, self.output_dim, 4, 2, 1),
-            nn.Tanh(),
+            nn.Sigmoid(),
         )
         utils.initialize_weights(self)
 
@@ -163,15 +118,6 @@ class VAE(nn.Module):
         std = torch.exp(0.5*logvar)
         eps = torch.randn_like(std)
         return mu + eps*std
-
-    # def decode(self, z):
-    #     z = self.decoder_lin(z)
-    #     z = z.view(-1, 256, 1, 1)
-    #     z = self.decoder1(z)
-    #     z = F.interpolate(z, scale_factor=2, mode='bilinear', align_corners = True)
-    #     z = self.decoder2(z)
-    #     z = F.interpolate(z, scale_factor=2, mode='bilinear', align_corners = True)
-    #     return self.decoder3(z)
 
     def decode(self, input):
         x = self.fc(input)
@@ -192,7 +138,9 @@ optimizer = optim.Adam(model.parameters(), lr=1e-3)
 # Reconstruction + KL divergence losses summed over all elements and batch
 def loss_function(recon_x, x, mu, logvar):
     # pdb.set_trace()
-    BCE = F.mse_loss(recon_x.view(-1, input_size*input_size*3), x.view(-1, input_size*input_size*3))
+    # BCE = F.mse_loss(recon_x.view(-1, input_size*input_size*3), x.view(-1, input_size*input_size*3))
+    # BCE = F.binary_cross_entropy(recon_x.view(-1, input_size*input_size*3), x.view(-1, input_size*input_size*3))
+    BCE = F.binary_cross_entropy(recon_x.view(-1, input_size*input_size*3), x.view(-1, input_size*input_size*3), reduction='sum')
 
     # 0.5 * sum(1 + log(sigma^2) - mu^2 - sigma^2)
     KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
@@ -204,12 +152,7 @@ def loss_function(recon_x, x, mu, logvar):
 def train(epoch):
     model.train()
     train_loss = 0
-    recon_batch = 0
-    z_latent = 0
-
-    # pdb.set_trace()
     for batch_idx, (data, _) in enumerate(train_loader):
-        # pdb.set_trace()
         data = data.to(device)
         optimizer.zero_grad()
         recon_batch, mu, logvar, z_latent = model(data)
@@ -217,23 +160,29 @@ def train(epoch):
         loss.backward()
         train_loss += loss.item()
         optimizer.step()
+        # with torch.no_grad():
+        #     visualize_recon(recon_batch, batch_idx)
+        #     visualize_z_eps(z_latent, batch_idx)
+        
         if batch_idx % args.log_interval == 0:
             print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
                 epoch, batch_idx * len(data), len(train_loader.dataset),
                 100. * batch_idx / len(train_loader),
                 loss.item() / len(data)))
+            
+            if batch_idx == 1020:
+                print('printing...')
+                with torch.no_grad():
+                    visualize_recon(recon_batch, epoch)
+                    # visualize_z_eps(z_latent, epoch)
+
 
 
     print('====> Epoch: {} Average loss: {:.4f}'.format(
           epoch, train_loss / len(train_loader.dataset)))
-    
-    
-    # with torch.no_grad():
-    #     visualize_recon(recon_batch, epoch)
-    #     visualize_z_eps(z_latent, epoch)
 
 
-def test(epoch):
+def valid(epoch):
     model.eval()
     test_loss = 0
 
@@ -244,7 +193,8 @@ def test(epoch):
             test_loss += loss_function(recon_batch, data, mu, logvar).item()
 
     test_loss /= len(test_loader.dataset)
-    print('====> Test set loss: {:.4f}'.format(test_loss))
+    print('====> Valid set loss: {:.4f}'.format(test_loss))
+    return test_loss
 
 
 def visualize_recon(recon, epoch):
@@ -268,66 +218,89 @@ def visualize_z_eps(z_latent, epoch):
 
     tot_num_samples = min(sample_num, batch_size)
     image_frame_dim = int(np.floor(np.sqrt(tot_num_samples)))
-    epsilon = 10000
+    epsilon = 100
 
     z_latent = z_latent.view(-1, z_dim)
     # rand_dim = random.randint(0,99)
-    rand_dim = 0
-    z_eps = z_latent[:][rand_dim] + epsilon
-    pdb.set_trace()
-    samples = model.decode(z_eps)
+    rand_dim = 5
+
+    # pdb.set_trace()
+    z_trans = torch.transpose(z_latent, 0, 1)
+    z_before = z_trans[:][:rand_dim]
+    z_eps = z_trans[:][rand_dim] + epsilon
+    z_after = z_trans[:][rand_dim+1:]
+    z_final = torch.cat((z_before, z_eps.view(1, -1), z_after), 0)
+    z_samples = torch.transpose(z_final, 0, 1)
+
+    samples = model.decode(z_samples)
     samples = samples.cpu().data.numpy().transpose(0, 2, 3, 1)
 
     samples = (samples + 1) / 2
     utils.save_images(samples[:image_frame_dim * image_frame_dim, :, :, :], [image_frame_dim, image_frame_dim],
                         result_dir + '/' + dataset + '/' + model_name + '/' + dir_recon + '/' + model_name + '_epoch%03d' % epoch + '_eps' + str(epsilon) + '.png')
 
-def visualize_z(z_latent, epoch):
-    dir_recon = 'reconstruction'
-    if not os.path.exists(result_dir + '/' + dataset + '/' + model_name + '/' + dir_recon):
-        os.makedirs(result_dir + '/' + dataset + '/' + model_name + '/' + dir_recon)
+# def visualize_z(z_latent, epoch):
+#     dir_recon = 'reconstruction'
+#     if not os.path.exists(result_dir + '/' + dataset + '/' + model_name + '/' + dir_recon):
+#         os.makedirs(result_dir + '/' + dataset + '/' + model_name + '/' + dir_recon)
 
-    tot_num_samples = min(sample_num, batch_size)
-    image_frame_dim = int(np.floor(np.sqrt(tot_num_samples)))
+#     tot_num_samples = min(sample_num, batch_size)
+#     image_frame_dim = int(np.floor(np.sqrt(tot_num_samples)))
 
 
-    z_latent = z_latent.view(-1, z_dim)
-    samples = model.decode(z_latent)
-    samples = samples.cpu().data.numpy().transpose(0, 2, 3, 1)
+#     z_latent = z_latent.view(-1, z_dim)
+#     samples = model.decode(z_latent)
+#     samples = samples.cpu().data.numpy().transpose(0, 2, 3, 1)
 
-    samples = (samples + 1) / 2
-    utils.save_images(samples[:image_frame_dim * image_frame_dim, :, :, :], [image_frame_dim, image_frame_dim],
-                        result_dir + '/' + dataset + '/' + model_name + '/' + dir_recon + '/' + model_name + '_epoch%03d' % epoch + '_z.png')
+#     samples = (samples + 1) / 2
+#     utils.save_images(samples[:image_frame_dim * image_frame_dim, :, :, :], [image_frame_dim, image_frame_dim],
+#                         result_dir + '/' + dataset + '/' + model_name + '/' + dir_recon + '/' + model_name + '_epoch%03d' % epoch + '_z.png')
   
 
-def visualize_results(epoch, fix=True):
-    # self.G.eval()
-    dir_res = 'sample_z_fix_'+ str(fix)
-    if not os.path.exists(result_dir + '/' + dataset + '/' + model_name + '/' + dir_res):
-        os.makedirs(result_dir + '/' + dataset + '/' + model_name + '/' + dir_res)
+# def visualize_results(epoch, fix=True):
+#     # self.G.eval()
+#     dir_res = 'sample_z_fix_'+ str(fix)
+#     if not os.path.exists(result_dir + '/' + dataset + '/' + model_name + '/' + dir_res):
+#         os.makedirs(result_dir + '/' + dataset + '/' + model_name + '/' + dir_res)
 
-    tot_num_samples = min(sample_num, batch_size)
-    image_frame_dim = int(np.floor(np.sqrt(tot_num_samples)))
+#     tot_num_samples = min(sample_num, batch_size)
+#     image_frame_dim = int(np.floor(np.sqrt(tot_num_samples)))
 
-    epsilon = 0
-    if fix:
-        """ fixed noise """
-        samples = model.decode(sample_z) + epsilon
-    else:
-        """ random noise """
-        sample_z_ = torch.randn((batch_size, z_dim)) + epsilon
-        sample_z_ = sample_z_.to(device)
+#     epsilon = 0
+#     if fix:
+#         """ fixed noise """
+#         samples = model.decode(sample_z) + epsilon
+#     else:
+#         """ random noise """
+#         sample_z_ = torch.randn((batch_size, z_dim)) + epsilon
+#         sample_z_ = sample_z_.to(device)
 
-        samples = model.decoder(sample_z_)
+#         samples = model.decoder(sample_z_)
     
-    samples = samples.cpu().data.numpy().transpose(0, 2, 3, 1)
+#     samples = samples.cpu().data.numpy().transpose(0, 2, 3, 1)
 
-    samples = (samples + 1) / 2
-    utils.save_images(samples[:image_frame_dim * image_frame_dim, :, :, :], [image_frame_dim, image_frame_dim],
-                        result_dir + '/' + dataset + '/' + model_name + '/' + dir_res + '/' + model_name + '_epoch%03d' % epoch + '.png')
+#     samples = (samples + 1) / 2
+#     utils.save_images(samples[:image_frame_dim * image_frame_dim, :, :, :], [image_frame_dim, image_frame_dim],
+#                         result_dir + '/' + dataset + '/' + model_name + '/' + dir_res + '/' + model_name + '_epoch%03d' % epoch + '.png')
 
+
+def save():
+    save_path = os.path.join(save_dir, dataset, model_name)
+
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
+    torch.save(model.state_dict(), os.path.join(save_path, model_name + '.pkl'))
 
 if __name__ == "__main__":
+    
+    losses = []
     for epoch in range(1, args.epochs + 1):
         train(epoch)
-        test(epoch)
+        loss = valid(epoch)
+        losses.append(loss)
+        save()
+    
+    plt.plot(losses)
+    plt.savefig('losses.png')
+    print('==============End Training============')
+    
