@@ -7,6 +7,7 @@ from torch import nn, optim
 from torch.nn import functional as F
 from torchvision import datasets, transforms
 from torchvision.utils import save_image
+import random
 
 # from dataloader import get_data_loader
 from dataloader import dataloader
@@ -203,6 +204,8 @@ def loss_function(recon_x, x, mu, logvar):
 def train(epoch):
     model.train()
     train_loss = 0
+    recon_batch = 0
+    z_latent = 0
 
     # pdb.set_trace()
     for batch_idx, (data, _) in enumerate(train_loader):
@@ -225,10 +228,9 @@ def train(epoch):
           epoch, train_loss / len(train_loader.dataset)))
     
     
-    with torch.no_grad():
-        visualize_z(z_latent, epoch)
-        visualize_z_eps(z_latent, epoch)
-        visualize_results(epoch)
+    # with torch.no_grad():
+    #     visualize_recon(recon_batch, epoch)
+    #     visualize_z_eps(z_latent, epoch)
 
 
 def test(epoch):
@@ -245,6 +247,41 @@ def test(epoch):
     print('====> Test set loss: {:.4f}'.format(test_loss))
 
 
+def visualize_recon(recon, epoch):
+    dir_recon = 'reconstruction'
+    if not os.path.exists(result_dir + '/' + dataset + '/' + model_name + '/' + dir_recon):
+        os.makedirs(result_dir + '/' + dataset + '/' + model_name + '/' + dir_recon)
+
+    tot_num_samples = min(sample_num, batch_size)
+    image_frame_dim = int(np.floor(np.sqrt(tot_num_samples)))
+
+    samples = recon.cpu().data.numpy().transpose(0, 2, 3, 1)
+
+    samples = (samples + 1) / 2
+    utils.save_images(samples[:image_frame_dim * image_frame_dim, :, :, :], [image_frame_dim, image_frame_dim],
+                        result_dir + '/' + dataset + '/' + model_name + '/' + dir_recon + '/' + model_name + '_epoch%03d' % epoch + '_recon.png')
+   
+def visualize_z_eps(z_latent, epoch):
+    dir_recon = 'reconstruction'
+    if not os.path.exists(result_dir + '/' + dataset + '/' + model_name + '/' + dir_recon):
+        os.makedirs(result_dir + '/' + dataset + '/' + model_name + '/' + dir_recon)
+
+    tot_num_samples = min(sample_num, batch_size)
+    image_frame_dim = int(np.floor(np.sqrt(tot_num_samples)))
+    epsilon = 10000
+
+    z_latent = z_latent.view(-1, z_dim)
+    # rand_dim = random.randint(0,99)
+    rand_dim = 0
+    z_eps = z_latent[:][rand_dim] + epsilon
+    pdb.set_trace()
+    samples = model.decode(z_eps)
+    samples = samples.cpu().data.numpy().transpose(0, 2, 3, 1)
+
+    samples = (samples + 1) / 2
+    utils.save_images(samples[:image_frame_dim * image_frame_dim, :, :, :], [image_frame_dim, image_frame_dim],
+                        result_dir + '/' + dataset + '/' + model_name + '/' + dir_recon + '/' + model_name + '_epoch%03d' % epoch + '_eps' + str(epsilon) + '.png')
+
 def visualize_z(z_latent, epoch):
     dir_recon = 'reconstruction'
     if not os.path.exists(result_dir + '/' + dataset + '/' + model_name + '/' + dir_recon):
@@ -260,24 +297,7 @@ def visualize_z(z_latent, epoch):
 
     samples = (samples + 1) / 2
     utils.save_images(samples[:image_frame_dim * image_frame_dim, :, :, :], [image_frame_dim, image_frame_dim],
-                        result_dir + '/' + dataset + '/' + model_name + '/' + dir_recon + '/' + model_name + '_epoch%03d' % epoch + '.png')
-   
-def visualize_z_eps(z_latent, epoch):
-    dir_recon = 'reconstruction'
-    if not os.path.exists(result_dir + '/' + dataset + '/' + model_name + '/' + dir_recon):
-        os.makedirs(result_dir + '/' + dataset + '/' + model_name + '/' + dir_recon)
-
-    tot_num_samples = min(sample_num, batch_size)
-    image_frame_dim = int(np.floor(np.sqrt(tot_num_samples)))
-    epsilon = 100
-
-    z_latent = z_latent.view(-1, z_dim)
-    samples = model.decode(z_latent + epsilon)
-    samples = samples.cpu().data.numpy().transpose(0, 2, 3, 1)
-
-    samples = (samples + 1) / 2
-    utils.save_images(samples[:image_frame_dim * image_frame_dim, :, :, :], [image_frame_dim, image_frame_dim],
-                        result_dir + '/' + dataset + '/' + model_name + '/' + dir_recon + '/' + model_name + '_epoch%03d' % epoch + '_eps' + str(epsilon) + '.png')
+                        result_dir + '/' + dataset + '/' + model_name + '/' + dir_recon + '/' + model_name + '_epoch%03d' % epoch + '_z.png')
   
 
 def visualize_results(epoch, fix=True):
