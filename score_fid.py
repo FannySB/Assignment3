@@ -4,6 +4,7 @@ import torchvision
 import torchvision.transforms as transforms
 import torch
 import classify_svhn
+import numpy as np
 from classify_svhn import Classifier
 
 SVHN_PATH = "svhn"
@@ -66,6 +67,7 @@ def extract_features(classifier, data_loader):
     with torch.no_grad():
         for x, _ in data_loader:
             h = classifier.extract_features(x).numpy()
+            # import pdb; pdb.set_trace()
             for i in range(h.shape[0]):
                 yield h[i]
 
@@ -75,10 +77,33 @@ def calculate_fid_score(sample_feature_iterator,
     """
     To be implemented by you!
     """
-    raise NotImplementedError(
-        "TO BE IMPLEMENTED."
-        "Part of Assignment 3 Quantitative Evaluations"
-    )
+    mu_sample = np.array([])
+    sigma_sample = np.array([])
+    for feat_sample in sample_feature_iterator:
+        mu_sample = np.append(mu_sample, np.mean(feat_sample))
+        sigma_sample = np.append(sigma_sample, np.var(feat_sample))
+        cov_sample = 
+
+    mu_test = np.array([])
+    sigma_test = np.array([])
+    for feat_test in testset_feature_iterator:
+        mu_test = np.append(mu_test, np.mean(feat_test))
+        sigma_test = np.append(sigma_test, np.var(feat_test))
+
+    covar = ma
+    # mu_diff = mu_sample - mu_test
+
+
+
+        
+    import pdb; pdb.set_trace()
+
+    # raise NotImplementedError(
+    #     "TO BE IMPLEMENTED."
+    #     "Part of Assignment 3 Quantitative Evaluations"
+    # )
+    
+    return 46
 
 
 if __name__ == "__main__":
@@ -103,12 +128,14 @@ if __name__ == "__main__":
     classifier = torch.load(args.model, map_location='cpu')
     classifier.eval()
 
-    sample_loader = get_sample_loader(args.directory,
-                                      PROCESS_BATCH_SIZE)
-    sample_f = extract_features(classifier, sample_loader)
+    # sample_loader = get_sample_loader(args.directory,
+                                    #   PROCESS_BATCH_SIZE)
+    # sample_f = extract_features(classifier, sample_loader)
 
     test_loader = get_test_loader(PROCESS_BATCH_SIZE)
     test_f = extract_features(classifier, test_loader)
 
-    fid_score = calculate_fid_score(sample_f, test_f)
+    # fid_score = calculate_fid_score(sample_f, test_f)
+    # import pdb; pdb.set_trace()
+    fid_score = calculate_fid_score(test_f, test_f)
     print("FID score:", fid_score)
