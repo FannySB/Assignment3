@@ -8,3 +8,7 @@ vae_mnist/binarized_mnist/
 vae_svhn/data/
 
 vae_svhn/results/
+
+data/
+
+samples/
