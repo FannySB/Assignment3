@@ -63,6 +63,22 @@ def visualize_sample(z_latent, model_name, epsilon = 0, dim_eps = 5):
 
     return z_samples
 
+
+def img_interpolate(img1, img2, alpha):
+    img1 = img1.flatten()
+    img2 = img2.flatten()
+
+    out = alpha * (img1) + (1 - alpha) * (img2)
+
+    out = out.reshape(64, 32, 32, 3)
+
+    path = 'results/svhn/vae/latent/interpol.png'
+
+    utils.save_images(out[:8 * 8, :, :, :], [8, 8], path)
+
+    return out
+
+
 def load(model_name):
     save_path = os.path.join(save_dir, dataset, model_name)
     model.load_state_dict(torch.load(os.path.join(save_path, model_name + '.pkl')))
@@ -79,35 +95,22 @@ if __name__ == "__main__":
     
     load(model_name)
     z_latent = torch.randn((batch_size, z_dim)).to(device)
-    # z_latent = torch.randn((2, 10)).to(device)
+    _ = visualize_sample(z_latent, model_name)
 
-    # visualize_sample(z_latent, model_name)
-    # visualize_sample(z_latent, model_name, 10000, 0)
+    z_latent = torch.randn((batch_size, z_dim)).to(device)
+    _ = visualize_sample(z_latent, model_name, 1, 1)
 
-    # z_latent = torch.randn((batch_size, z_dim)).to(device)
-    # z_latent = torch.randn((2, 10)).to(device)
-
-    # visualize_sample(z_latent, model_name, 2)
-    # n1 = visualize_sample(z_latent, model_name, 1, 1)
-    # n2 = visualize_sample(n1, model_name, 1, 2)
-    # n3 = visualize_sample(n2, model_name, 1, 3)
-    # n4 = visualize_sample(n3, model_name, 1, 4)
-    # n5 = visualize_sample(n4, model_name, 1, 5)
-    # n6 = visualize_sample(n5, model_name, 1, 6)
+    ### Sanity check
+    # def testrec(input, dim_eps):
     #
-    # for dim_eps in range(z_dim):
-    #     tmp = visualize_sample(z_latent, model_name, epsilon, dim_eps)
-
-    def testrec(input, dim_eps):
-
-        if dim_eps < 99:
-            output = visualize_sample(input, model_name, 10, dim_eps)
-            return (testrec(output, dim_eps+1))
-        else:
-            return visualize_sample(input, model_name, 10, dim_eps)
-
-    final = testrec(z_latent, 0)
-    print(final)
+    #     if dim_eps < 99:
+    #         output = visualize_sample(input, model_name, 10, dim_eps)
+    #         return (testrec(output, dim_eps+1))
+    #     else:
+    #         return visualize_sample(input, model_name, 10, dim_eps)
+    #
+    # final = testrec(z_latent, 0)
+    # print(final)
 
 
     # epsilon = 10000
