@@ -238,19 +238,24 @@ class WGAN_GP(object):
                           self.result_dir + '/' + self.dataset + '/' + self.model_name + '/' + self.model_name + '_epoch%03d' % epoch + '.png')
 
     def save(self):
-        save_dir = os.path.join(self.save_dir, self.dataset, self.model_name)
+        save_dir_g = os.path.join(self.save_dir, self.dataset, self.model_name + '_G')
+        save_dir_d = os.path.join(self.save_dir, self.dataset, self.model_name + '_D')
 
-        if not os.path.exists(save_dir):
-            os.makedirs(save_dir)
+        if not os.path.exists(save_dir_g):
+            os.makedirs(save_dir_g)
+            
+        if not os.path.exists(save_dir_d):
+            os.makedirs(save_dir_d)
 
-        torch.save(self.G.state_dict(), os.path.join(save_dir, self.model_name + '_G.pkl'))
-        torch.save(self.D.state_dict(), os.path.join(save_dir, self.model_name + '_D.pkl'))
+        torch.save(self.G.state_dict(), os.path.join(save_dir_g, self.model_name + '_G.pkl'))
+        torch.save(self.D.state_dict(), os.path.join(save_dir_d, self.model_name + '_D.pkl'))
 
         with open(os.path.join(save_dir, self.model_name + '_history.pkl'), 'wb') as f:
             pickle.dump(self.train_hist, f)
 
     def load(self):
-        save_dir = os.path.join(self.save_dir, self.dataset, self.model_name)
+        save_dir_g = os.path.join(self.save_dir, self.dataset, self.model_name + '_G')
+        save_dir_d = os.path.join(self.save_dir, self.dataset, self.model_name + '_D')
 
         self.G.load_state_dict(torch.load(os.path.join(save_dir, self.model_name + '_G.pkl')))
         self.D.load_state_dict(torch.load(os.path.join(save_dir, self.model_name + '_D.pkl')))

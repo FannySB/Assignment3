@@ -142,7 +142,7 @@ def loss_function(recon_x, x, mu, logvar):
     # pdb.set_trace()
     BCE = reconstruction_function(recon_x, x)  # fonctionne bien!!!
     # BCE = F.mse_loss(recon_x.view(-1, input_size*input_size*3), x.view(-1, input_size*input_size*3))  # ne fonctionne pas
-    # BCE = F.binary_cross_entropy(recon_x.view(-1, input_size*input_size*3), x.view(-1, input_size*input_size*3))  # images trop noires
+    # BCE = F.binary_cross_entropy(recon_x.view(-1, input_size*input_size*3), x.view(-1, input_size*input_size*3)) 
     # BCE = F.binary_cross_entropy((recon_x.view(-1, input_size*input_size*3)/2 + 0.5), (x.view(-1, input_size*input_size*3)/2 + 0.5), reduction='sum')
     ### ça aussi ça fonctionne mais les images sont peut-etre un peu trop blanches!?
 

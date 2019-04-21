@@ -9,10 +9,10 @@ def parse_args():
 
     parser.add_argument('--epsilon', type=str, default=0, help='Epsilon for disentangled representation')
     parser.add_argument('--split', type=str, default='', help='The split flag for svhn and stl10')
-    parser.add_argument('--epoch', type=int, default=50, help='The number of epochs to run')
+    parser.add_argument('--epoch', type=int, default=25, help='The number of epochs to run')
     parser.add_argument('--batch_size', type=int, default=64, help='The size of batch')
     parser.add_argument('--input_size', type=int, default=28, help='The size of input image')
-    parser.add_argument('--save_dir', type=str, default='models',
+    parser.add_argument('--save_dir', type=str, default='save',
                         help='Directory name to save the model')
     parser.add_argument('--result_dir', type=str, default='results', help='Directory name to save the generated images')
     parser.add_argument('--log_dir', type=str, default='logs', help='Directory name to save training logs')
