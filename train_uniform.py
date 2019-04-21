@@ -169,7 +169,7 @@ losses = []
 phi_ = []
 
 while not phi > 1.0:
-    print(phi)
+    print('phi: 'phi)
     phi_.append(phi)
     model, loss = train(loss_function = 'js', batch_size=batch_size, epoch=1000, phi=phi)
     losses.append(loss.data[0])
