@@ -32,6 +32,7 @@ class generator(nn.Module):
         utils.initialize_weights(self)
 
     def forward(self, input):
+
         x = self.fc(input)
         x = x.view(-1, 128, (self.input_size // 4), (self.input_size // 4))
         x = self.deconv(x)
@@ -64,6 +65,9 @@ class discriminator(nn.Module):
         utils.initialize_weights(self)
 
     def forward(self, input):
+
+        # import pdb; pdb.set_trace()
+
         x = self.conv(input)
         x = x.view(-1, 128 * (self.input_size // 4) * (self.input_size // 4))
         x = self.fc(x)
@@ -85,7 +89,8 @@ class WGAN_GP(object):
         self.input_size = args.input_size
         self.z_dim = 100
         self.lambda_ = 10
-        self.n_critic = 5               # the number of iterations of the critic per generator iteration
+        self.n_critic = 1             # the number of iterations of the critic per generator iteration
+        self.epsilon = args.epsilon
 
         # load dataset
         self.data_loader, self.valid_loader, self.test_loader = dataloader(self.dataset, self.input_size, self.batch_size)
@@ -210,13 +215,14 @@ class WGAN_GP(object):
         tot_num_samples = min(self.sample_num, self.batch_size)
         image_frame_dim = int(np.floor(np.sqrt(tot_num_samples)))
 
-        epsilon = 0
+        # import pdb; pdb.set_trace()
+
         if fix:
             """ fixed noise """
-            samples = self.G(self.sample_z_) + epsilon
+            samples = self.G(self.sample_z_) + self.epsilon
         else:
             """ random noise """
-            sample_z_ = torch.randn((self.batch_size, self.z_dim)) + epsilon
+            sample_z_ = torch.randn((self.batch_size, self.z_dim)) + self.epsilon
             if self.gpu_mode:
                 sample_z_ = sample_z_.cuda()
 
@@ -248,3 +254,7 @@ class WGAN_GP(object):
 
         self.G.load_state_dict(torch.load(os.path.join(save_dir, self.model_name + '_G.pkl')))
         self.D.load_state_dict(torch.load(os.path.join(save_dir, self.model_name + '_D.pkl')))
+
+    # def isentangled_representation (self)
+
+
