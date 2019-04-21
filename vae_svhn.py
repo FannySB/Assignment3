@@ -20,7 +20,7 @@ import utils
 parser = argparse.ArgumentParser(description='VAE MNIST Example')
 parser.add_argument('--batch-size', type=int, default=64, metavar='N',
                     help='input batch size for training (default: 128)')
-parser.add_argument('--epochs', type=int, default=50, metavar='N',
+parser.add_argument('--epochs', type=int, default=20, metavar='N',
                     help='number of epochs to train (default: 10)')
 parser.add_argument('--no-cuda', action='store_true', default=False,
                     help='enables CUDA training')
@@ -103,7 +103,7 @@ class VAE(nn.Module):
             nn.BatchNorm2d(64),
             nn.ReLU(),
             nn.ConvTranspose2d(64, self.output_dim, 4, 2, 1),
-            nn.Sigmoid(),
+            nn.Tanh(),
         )
         utils.initialize_weights(self)
 
@@ -135,17 +135,22 @@ class VAE(nn.Module):
 model = VAE().to(device)
 optimizer = optim.Adam(model.parameters(), lr=1e-3)
 
+reconstruction_function = nn.MSELoss(size_average=False)
 
 # Reconstruction + KL divergence losses summed over all elements and batch
 def loss_function(recon_x, x, mu, logvar):
     # pdb.set_trace()
-    # BCE = F.mse_loss(recon_x.view(-1, input_size*input_size*3), x.view(-1, input_size*input_size*3))
-    # BCE = F.binary_cross_entropy(recon_x.view(-1, input_size*input_size*3), x.view(-1, input_size*input_size*3))
-    BCE = F.binary_cross_entropy(recon_x.view(-1, input_size*input_size*3), x.view(-1, input_size*input_size*3), reduction='sum')
+    BCE = reconstruction_function(recon_x, x)  # fonctionne bien!!!
+    # BCE = F.mse_loss(recon_x.view(-1, input_size*input_size*3), x.view(-1, input_size*input_size*3))  # ne fonctionne pas
+    # BCE = F.binary_cross_entropy(recon_x.view(-1, input_size*input_size*3), x.view(-1, input_size*input_size*3))  # images trop noires
+    # BCE = F.binary_cross_entropy((recon_x.view(-1, input_size*input_size*3)/2 + 0.5), (x.view(-1, input_size*input_size*3)/2 + 0.5), reduction='sum')
+    ### ça aussi ça fonctionne mais les images sont peut-etre un peu trop blanches!?
 
     # 0.5 * sum(1 + log(sigma^2) - mu^2 - sigma^2)
     KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
 
+    # print("BCE : ", BCE)
+    # print("KLD : ", KLD)
     return BCE + KLD
     # return -(BCE - KLD)
 
@@ -161,9 +166,6 @@ def train(epoch):
         loss.backward()
         train_loss += loss.item()
         optimizer.step()
-        # with torch.no_grad():
-        #     visualize_recon(recon_batch, batch_idx)
-        #     visualize_z_eps(z_latent, batch_idx)
         
         if batch_idx % args.log_interval == 0:
             print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
