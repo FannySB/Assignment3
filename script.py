@@ -28,7 +28,7 @@ sample_z = torch.randn((batch_size, z_dim)).to(device)
 
 def visualize_all_sample(z_latent, model_name, count):
     dir_recon = 'latent_z'
-    path = samples_dir + '/' + model_name + '/' + 'samples'
+    path = 'fid_samples' + '/' + model_name
     if not os.path.exists(path):
         os.makedirs(path)
 
@@ -45,23 +45,19 @@ def visualize_all_sample(z_latent, model_name, count):
     
 def visualize_gan_all_sample(z_latent, model_name, count):
     dir_recon = 'latent_z'
-    path = samples_dir + '/' + model_name + '/' + 'samples'
+    path = 'fid_samples' + '/' + model_name + '/samples' 
     if not os.path.exists(path):
         os.makedirs(path)
 
     tot_num_samples = min(sample_num, batch_size)
     image_frame_dim = int(np.floor(np.sqrt(tot_num_samples)))
     z_samples = z_latent.view(-1, z_dim)
-    samples = model.eval(z_samples)
+    samples = model(z_samples.cpu())
 
     for sample in samples:
         count += 1
         save_image(sample, path + '/' + model_name + '_' + str(count) + '.png')
     return samples
-
-
-
-
 
 
 def visualize_sample(z_latent, model_name, epsilon = 0, dim_eps = 5):
@@ -107,7 +103,7 @@ def visualize_gan_sample(z_latent, model_name, epsilon = 0, dim_eps = 5):
     z_samples[dim_eps] = z_samples[dim_eps] + epsilon
     z_samples = torch.transpose(z_samples, 0, 1)
 
-    samples = model.eval(z_samples)
+    samples = model(z_samples.cpu())
     samples = samples.cpu().data.numpy().transpose(0, 2, 3, 1)
 
     samples = (samples + 1) / 2
@@ -135,7 +131,9 @@ def generate_sample(z_latent, model_name, epsilon = 0, dim_eps = 5):
     z_samples = torch.transpose(z_samples, 0, 1)
 
     samples = model.decode(z_samples)
-    samples = samples[7].view(1, 3, 32, 32)
+    # normalize = transform.normalize(mean(-1, -1, -1), std(2, 2, 2))
+    # sam = normalize(samples)
+    samples = samples[7].view(1, 3, input_size, input_size)
     samples = samples.cpu().data.numpy() #.transpose(0, 2, 3, 1)
 
     samples = (samples + 1) / 2
@@ -150,13 +148,11 @@ def generate_gan_sample(z_latent, model_name, epsilon = 0, dim_eps = 5):
     z_samples = z_latent.view(-1, z_dim)
 
     z_samples = torch.transpose(z_samples, 0, 1)
-    print('before', z_samples[dim_eps])
     z_samples[dim_eps] = z_samples[dim_eps] + epsilon
-    print('after', z_samples[dim_eps])
     z_samples = torch.transpose(z_samples, 0, 1)
 
-    samples = model.eval(z_samples)
-    samples = samples[7].view(1, 3, 32, 32)
+    samples = model(z_samples.cpu())
+    samples = samples[7].view(1, 3, input_size, input_size)
     samples = samples.cpu().data.numpy() #.transpose(0, 2, 3, 1)
 
     samples = (samples + 1) / 2
@@ -169,9 +165,23 @@ def img_interpolate(img1, img2, alpha):
 
     out = alpha * (img1) + (1 - alpha) * (img2)
 
-    out = out.reshape(64, 32, 32, 3)
+    out = out.reshape(64, input_size, input_size, 3)
 
     path = 'results/svhn/vae/latent/interpol.png'
+
+    utils.save_images(out[:8 * 8, :, :, :], [8, 8], path)
+
+    return out
+
+def z_interpolate(z_1, z_2, alpha):
+    z_1 = z_1.flatten()
+    z_2 = z_2.flatten()
+
+    out = alpha * (z_1) + (1 - alpha) * (z_2)
+
+    out = out.reshape(64, input_size, input_size, 3)
+
+    path = 'results/svhn/vae/latent/interpol_z.png'
 
     utils.save_images(out[:8 * 8, :, :, :], [8, 8], path)
 
@@ -201,7 +211,7 @@ if __name__ == "__main__":
     image_frame_dim = int(np.floor(np.sqrt(z_dim)))
     epsilon = [0.9]
     for eps in epsilon:
-        samples = np.ndarray((z_dim, 3, 32, 32))
+        samples = np.ndarray((z_dim, 3, input_size, input_size))
         for dim_eps in range(z_dim):
             new_sample = generate_sample(z_latent, model_name, eps, dim_eps)
             samples[dim_eps] = new_sample
@@ -216,9 +226,13 @@ if __name__ == "__main__":
     
     print('WGAN_GP_G')
     model_name = 'WGAN_GP_G'
-    model = generator()
+    input_size = 28
+    model = generator(input_dim=z_dim, output_dim=3, input_size=28)
 
     load(model_name)
+    model.eval()
+    
+    z_latent = torch.randn((batch_size, z_dim)).to(device)
     visualize_gan_sample(z_latent, model_name)
     print('print samples for #3 quantitative')
     for i in range(15):
@@ -227,8 +241,7 @@ if __name__ == "__main__":
 
     print('print samples with epsilon')
     for eps in epsilon:
-        print(eps)
-        samples = np.ndarray((z_dim, 3, 32, 32))
+        samples = np.ndarray((z_dim, 3, input_size, input_size))
         for dim_eps in range(z_dim):
             # pdb.set_trace()
             new_sample = generate_gan_sample(z_latent, model_name, eps, dim_eps)
