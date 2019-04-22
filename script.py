@@ -9,6 +9,8 @@ import matplotlib.pyplot as plt
 from vae_svhn import VAE
 import pdb
 from WGAN_GP import generator
+from torchvision import transforms
+from torch.nn import functional as F
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 dataset = 'svhn'
@@ -23,12 +25,20 @@ gpu_mode = True
 lambda_ = 10
 n_critic = 5 
 sample_z = torch.randn((batch_size, z_dim)).to(device)
+mu = (-1, -1, -1)
+var = (2, 2, 2)
+normalize = transforms.Normalize(mu, var)
+# normalize = transforms.Compose([
+#     transforms.ToPILImage(),
+#     transforms.Normalize((-1, -1, -1), (2, 2, 2)),
+#     transforms.ToTensor()
+# ])
 
 
 
 def visualize_all_sample(z_latent, model_name, count):
     dir_recon = 'latent_z'
-    path = 'fid_samples' + '/' + model_name
+    path = 'fid_samples' + '/' + model_name + '/samples' 
     if not os.path.exists(path):
         os.makedirs(path)
 
@@ -36,11 +46,13 @@ def visualize_all_sample(z_latent, model_name, count):
     image_frame_dim = int(np.floor(np.sqrt(tot_num_samples)))
     z_samples = z_latent.view(-1, z_dim)
     samples = model.decode(z_samples)
+    
+    samples = normalize(samples)
 
     for sample in samples:
         count += 1
+        if count>1000: break
         save_image(sample, path + '/' + model_name + '_' + str(count) + '.png')
-    return samples
 
     
 def visualize_gan_all_sample(z_latent, model_name, count):
@@ -54,10 +66,12 @@ def visualize_gan_all_sample(z_latent, model_name, count):
     z_samples = z_latent.view(-1, z_dim)
     samples = model(z_samples.cpu())
 
+    samples = normalize(samples)
+
     for sample in samples:
         count += 1
+        if count>1000: break
         save_image(sample, path + '/' + model_name + '_' + str(count) + '.png')
-    return samples
 
 
 def visualize_sample(z_latent, model_name, epsilon = 0, dim_eps = 5):
@@ -75,9 +89,14 @@ def visualize_sample(z_latent, model_name, epsilon = 0, dim_eps = 5):
     z_samples = torch.transpose(z_samples, 0, 1)
 
     samples = model.decode(z_samples)
+    pdb.set_trace()
+    # print('shape', samples.view(-1, input_size, input_size).shape)
+    samples = normalize(samples.detach().cpu().numpy())
+    # samples = F.normalize(samples.detach().cpu().numpy(), mu, var)
+
     samples = samples.cpu().data.numpy().transpose(0, 2, 3, 1)
 
-    samples = (samples + 1) / 2
+    # samples = (samples + 1) / 2
 
     if epsilon != 0:
         utils.save_images(samples[:image_frame_dim * image_frame_dim, :, :, :], [image_frame_dim, image_frame_dim],
@@ -104,9 +123,12 @@ def visualize_gan_sample(z_latent, model_name, epsilon = 0, dim_eps = 5):
     z_samples = torch.transpose(z_samples, 0, 1)
 
     samples = model(z_samples.cpu())
+    
+    samples = normalize(samples)
+
     samples = samples.cpu().data.numpy().transpose(0, 2, 3, 1)
 
-    samples = (samples + 1) / 2
+    # samples = (samples + 1) / 2
 
     if epsilon != 0:
         utils.save_images(samples[:image_frame_dim * image_frame_dim, :, :, :], [image_frame_dim, image_frame_dim],
@@ -131,12 +153,13 @@ def generate_sample(z_latent, model_name, epsilon = 0, dim_eps = 5):
     z_samples = torch.transpose(z_samples, 0, 1)
 
     samples = model.decode(z_samples)
-    # normalize = transform.normalize(mean(-1, -1, -1), std(2, 2, 2))
-    # sam = normalize(samples)
+
+    samples = normalize(samples)
+
     samples = samples[7].view(1, 3, input_size, input_size)
     samples = samples.cpu().data.numpy() #.transpose(0, 2, 3, 1)
 
-    samples = (samples + 1) / 2
+    # samples = (samples + 1) / 2
 
     return samples
 
@@ -152,10 +175,13 @@ def generate_gan_sample(z_latent, model_name, epsilon = 0, dim_eps = 5):
     z_samples = torch.transpose(z_samples, 0, 1)
 
     samples = model(z_samples.cpu())
+    
+    samples = normalize(samples)
+
     samples = samples[7].view(1, 3, input_size, input_size)
     samples = samples.cpu().data.numpy() #.transpose(0, 2, 3, 1)
 
-    samples = (samples + 1) / 2
+    # samples = (samples + 1) / 2
 
     return samples
 
@@ -203,7 +229,7 @@ if __name__ == "__main__":
     visualize_sample(z_latent, model_name)
 
     print('print samples for #3 quantitative')
-    for i in range(15):
+    for i in range(16):
         z_latent = torch.randn((batch_size, z_dim)).to(device)
         visualize_all_sample(z_latent, model_name, i*64)
 
@@ -235,7 +261,7 @@ if __name__ == "__main__":
     z_latent = torch.randn((batch_size, z_dim)).to(device)
     visualize_gan_sample(z_latent, model_name)
     print('print samples for #3 quantitative')
-    for i in range(15):
+    for i in range(16):
         z_latent = torch.randn((batch_size, z_dim)).to(device)
         visualize_gan_all_sample(z_latent, model_name, i*64)
 
