@@ -4,6 +4,7 @@ import torchvision
 import torchvision.transforms as transforms
 import torch
 import classify_svhn
+import numpy as np
 from classify_svhn import Classifier
 
 SVHN_PATH = "svhn"
@@ -63,6 +64,7 @@ def extract_features(classifier, data_loader):
     """
     Iterator of features for each image.
     """
+    # import pdb; pdb.set_trace()
     with torch.no_grad():
         for x, _ in data_loader:
             h = classifier.extract_features(x).numpy()
@@ -72,13 +74,44 @@ def extract_features(classifier, data_loader):
 
 def calculate_fid_score(sample_feature_iterator,
                         testset_feature_iterator):
-    """
-    To be implemented by you!
-    """
-    raise NotImplementedError(
-        "TO BE IMPLEMENTED."
-        "Part of Assignment 3 Quantitative Evaluations"
-    )
+    # len_iterator = len(list(testset_feature_iterator))
+    mu_sample = []
+    sigma_sample = []
+    trace_sample = 1
+    counter = 0
+    # import pdb; pdb.set_trace()
+    for feat_sample in sample_feature_iterator:
+        mean = np.mean(feat_sample)
+        var = np.var(feat_sample)
+        mu_sample.append(mean)
+        sigma_sample.append(var)
+        trace_sample = trace_sample * var
+        counter += 1
+
+    mu_test = []
+    sigma_test = []
+    trace_test = 1
+    counter = 0
+    for feat_test in testset_feature_iterator:
+        mu_test.append(np.mean(feat_test))
+        var = np.var(feat_test)
+        sigma_test.append(var)
+        trace_test = trace_test * var
+        counter += 1
+
+    a =np.array(sigma_sample)
+    b =np.array(sigma_test)
+    c =a.dot(b)
+    covar = 2*(np.sqrt(c))
+    trace_cov = 1
+    counter = 0
+    for x in covar:
+        trace_cov = trace_cov * x
+        counter += 1
+
+    mu_diff = mu_sample - mu_test
+
+    return mu_diff**2 + trace_sample + trace_test - trace_covar
 
 
 if __name__ == "__main__":
@@ -101,7 +134,7 @@ if __name__ == "__main__":
         exit()
     print("Test")
     classifier = torch.load(args.model, map_location='cpu')
-    classifier.eval()
+    classifier.eval()   
 
     sample_loader = get_sample_loader(args.directory,
                                       PROCESS_BATCH_SIZE)
