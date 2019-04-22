@@ -60,6 +60,26 @@ def get_test_loader(batch_size):
     return testloader
 
 
+def get_train_loader(batch_size):
+    """
+    Downloads (if it doesn't already exist) SVHN test into
+    [pwd]/svhn.
+
+    Returns an iterator over the tensors of the images
+    of dimension (batch_size, 3, 32, 32)
+    """
+    trainset = torchvision.datasets.SVHN(
+        SVHN_PATH, split='train',
+        download=True,
+        transform=classify_svhn.image_transform
+    )
+    trainloader = torch.utils.data.DataLoader(
+        trainset,
+        batch_size=batch_size,
+    )
+    return trainloader
+
+
 def extract_features(classifier, data_loader):
     """
     Iterator of features for each image.
@@ -143,5 +163,9 @@ if __name__ == "__main__":
     test_loader = get_test_loader(PROCESS_BATCH_SIZE)
     test_f = extract_features(classifier, test_loader)
 
-    fid_score = calculate_fid_score(sample_f, test_f)
+    
+    train_loader = get_train_loader(PROCESS_BATCH_SIZE)
+    train_f = extract_features(classifier, train_loader)
+
+    fid_score = calculate_fid_score(train_f, test_f)
     print("FID score:", fid_score)
