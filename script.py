@@ -460,9 +460,9 @@ def img_interpolate(z_1, z_2, alpha):
 
 
 def z_eps_gan(z_sample):
-    if not os.path.exists('samples/vae/epsilon/'):
-        os.makedirs('samples/vae/epsilon/')
-    epsilon = [0.5, 1, 1.5, 2, 3]
+    if not os.path.exists('samples/WGAN_GP_G/epsilon/'):
+        os.makedirs('samples/WGAN_GP_G/epsilon/')
+    epsilon = [2, 2.25, 2.5, 2.75, 3]
     for eps in epsilon:
         samples1 = []
         samples2 = []
@@ -504,27 +504,27 @@ def z_eps_gan(z_sample):
 
         image_frame_dim = 10
         # pdb.set_trace()
-        path = 'samples/vae/epsilon/eps_' + str(eps) + '_1.png'
+        path = 'samples/WGAN_GP_G/epsilon/eps_' + str(eps) + '_1.png'
         print_samples = samples1[:image_frame_dim * image_frame_dim]
         print_samples = print_samples.transpose(0, 2, 3, 1)
         utils.save_images(print_samples, [image_frame_dim, image_frame_dim],path)
         
-        path = 'samples/vae/epsilon/eps_' + str(eps) + '_2.png'
+        path = 'samples/WGAN_GP_G/epsilon/eps_' + str(eps) + '_2.png'
         print_samples = samples2[:image_frame_dim * image_frame_dim]
         print_samples = print_samples.transpose(0, 2, 3, 1)
         utils.save_images(print_samples, [image_frame_dim, image_frame_dim],path)
         
-        path = 'samples/vae/epsilon/eps_' + str(eps) + '_3.png'
+        path = 'samples/WGAN_GP_G/epsilon/eps_' + str(eps) + '_3.png'
         print_samples = samples3[:image_frame_dim * image_frame_dim]
         print_samples = print_samples.transpose(0, 2, 3, 1)
         utils.save_images(print_samples, [image_frame_dim, image_frame_dim],path)
         
-        path = 'samples/vae/epsilon/eps_' + str(eps) + '_4.png'
+        path = 'samples/WGAN_GP_G/epsilon/eps_' + str(eps) + '_4.png'
         print_samples = samples4[:image_frame_dim * image_frame_dim]
         print_samples = print_samples.transpose(0, 2, 3, 1)
         utils.save_images(print_samples, [image_frame_dim, image_frame_dim],path)
         
-        path = 'samples/vae/epsilon/eps_' + str(eps) + '_5.png'
+        path = 'samples/WGAN_GP_G/epsilon/eps_' + str(eps) + '_5.png'
         print_samples = samples5[:image_frame_dim * image_frame_dim]
         print_samples = print_samples.transpose(0, 2, 3, 1)
         utils.save_images(print_samples, [image_frame_dim, image_frame_dim],path)
@@ -534,7 +534,7 @@ def z_eps_gan(z_sample):
 def z_eps(z_sample):
     if not os.path.exists('samples/vae/epsilon/'):
         os.makedirs('samples/vae/epsilon/')
-    epsilon = [100000000000]
+    epsilon = [120000000, 122500000, 125000000]
     for eps in epsilon:
         samples1 = []
         samples2 = []
@@ -549,11 +549,11 @@ def z_eps(z_sample):
             noise_copy[dim] = noise_copy[dim] + eps
             noise_copy = torch.transpose(noise_copy, 0, 1)
             sample = model.decode(noise_copy)
-            samples1.append(sample[0].cpu().data.numpy())
-            samples2.append(sample[1].cpu().data.numpy())
-            samples3.append(sample[2].cpu().data.numpy())
-            samples4.append(sample[3].cpu().data.numpy())
-            samples5.append(sample[4].cpu().data.numpy())
+            samples1.append(sample[0+15].cpu().data.numpy())
+            samples2.append(sample[1+15].cpu().data.numpy())
+            samples3.append(sample[2+15].cpu().data.numpy())
+            samples4.append(sample[3+15].cpu().data.numpy())
+            samples5.append(sample[4+15].cpu().data.numpy())
 
         samples1 = np.array(samples1)
         samples2 = np.array(samples2)
