@@ -4,8 +4,10 @@ import os
 import utils
 from torchvision.utils import save_image
 import random
+import imageio
 import matplotlib.pyplot as plt
 from vae_svhn import VAE
+import pdb
 # from WGAN_GP import generator
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -32,22 +34,9 @@ def visualize_sample(z_latent, model_name, epsilon = 0, dim_eps = 5):
     image_frame_dim = int(np.floor(np.sqrt(tot_num_samples)))
     z_samples = z_latent.view(-1, z_dim)
 
-    # pdb.set_trace()
-    if epsilon != 0:
-        z_trans = torch.transpose(z_latent, 0, 1)
-        if dim_eps != 0:
-            z_before = z_trans[:][:dim_eps]
-        z_eps = z_trans[:][dim_eps] + epsilon
-        if dim_eps != z_dim - 1:
-            z_after = z_trans[:][dim_eps+1:]
-        
-        if dim_eps == 0:
-            z_final = torch.cat((z_eps.view(1, -1), z_after), 0)
-        elif dim_eps == z_dim - 1:
-            z_final = torch.cat((z_before, z_eps.view(1, -1)), 0)
-        else:
-            z_final = torch.cat((z_before, z_eps.view(1, -1), z_after), 0)
-        z_samples = torch.transpose(z_final, 0, 1)
+    z_samples = torch.transpose(z_samples, 0, 1)
+    z_samples[dim_eps] = z_samples[dim_eps] + epsilon
+    z_samples = torch.transpose(z_samples, 0, 1)
 
     samples = model.decode(z_samples)
     samples = samples.cpu().data.numpy().transpose(0, 2, 3, 1)
@@ -57,12 +46,34 @@ def visualize_sample(z_latent, model_name, epsilon = 0, dim_eps = 5):
     if epsilon != 0:
         utils.save_images(samples[:image_frame_dim * image_frame_dim, :, :, :], [image_frame_dim, image_frame_dim],
                         samples_dir + '/' + model_name + '/' + model_name + '_eps' + str(epsilon) + '_dim' + str(dim_eps) + '.png')
+        # save_image(samples_[0], samples_dir + '/' + model_name + '/' + model_name + '_eps' + str(epsilon) + '_dim' + str(dim_eps) + '.png')
     else:
         utils.save_images(samples[:image_frame_dim * image_frame_dim, :, :, :], [image_frame_dim, image_frame_dim],
                         samples_dir + '/' + model_name + '/' + model_name + '.png')
 
-    return z_samples
+    return samples
 
+
+def generate_sample(z_latent, model_name, epsilon = 0, dim_eps = 5):
+    dir_recon = 'latent_z'
+    if not os.path.exists(samples_dir + '/' + model_name):
+        os.makedirs(samples_dir + '/' + model_name)
+
+    z_samples = z_latent.view(-1, z_dim)
+
+    z_samples = torch.transpose(z_samples, 0, 1)
+    print('before', z_samples[dim_eps])
+    z_samples[dim_eps] = z_samples[dim_eps] + epsilon
+    print('after', z_samples[dim_eps])
+    z_samples = torch.transpose(z_samples, 0, 1)
+
+    samples = model.decode(z_samples)
+    samples = samples[7].view(1, 3, 32, 32)
+    samples = samples.cpu().data.numpy() #.transpose(0, 2, 3, 1)
+
+    samples = (samples + 1) / 2
+
+    return samples
 
 def img_interpolate(img1, img2, alpha):
     img1 = img1.flatten()
@@ -83,7 +94,6 @@ def load(model_name):
     save_path = os.path.join(save_dir, dataset, model_name)
     model.load_state_dict(torch.load(os.path.join(save_path, model_name + '.pkl')))
 
-
 if __name__ == "__main__":
 
     model_name = 'vae'
@@ -95,10 +105,31 @@ if __name__ == "__main__":
     
     load(model_name)
     z_latent = torch.randn((batch_size, z_dim)).to(device)
-    _ = visualize_sample(z_latent, model_name)
+    visualize_sample(z_latent, model_name)
 
-    z_latent = torch.randn((batch_size, z_dim)).to(device)
-    _ = visualize_sample(z_latent, model_name, 1, 1)
+    image_frame_dim = int(np.floor(np.sqrt(z_dim)))
+    # z_latent = torch.randn((batch_size, z_dim)).to(device)
+    epsilon = [0.9]
+    # for x in range(3):
+    #     z_latent = torch.randn((batch_size, z_dim)).to(device)
+    for eps in epsilon:
+        print(eps)
+        samples = np.ndarray((z_dim, 3, 32, 32))
+        for dim_eps in range(z_dim):
+            # pdb.set_trace()
+            new_sample = generate_sample(z_latent, model_name, eps, dim_eps)
+            samples[dim_eps] = new_sample
+    
+        # pdb.set_trace()
+        samples = samples[:image_frame_dim * image_frame_dim]
+        samples = samples.transpose(0, 2, 3, 1)
+
+        utils.save_images(samples, [image_frame_dim, image_frame_dim],
+                        samples_dir + '/' + model_name + '/' + model_name + '_eps' + str(eps) + '.png')
+
+        # utils.save_images(samples, [image_frame_dim, image_frame_dim],
+        #                 samples_dir + '/' + model_name + '/' + model_name + '_eps' + str(eps) + '_' + str(x) + '.png')
+
 
     ### Sanity check
     # def testrec(input, dim_eps):
