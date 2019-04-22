@@ -84,7 +84,7 @@ class WGAN_GP(object):
         self.result_dir = args.result_dir
         self.dataset = 'svhn' #args.dataset
         self.log_dir = args.log_dir
-        self.gpu_mode = args.gpu_mode
+        self.gpu_mode = True
         self.model_name = 'WGAN_GP' #args.gan_type
         self.input_size = 32
         self.z_dim = 100
@@ -117,6 +117,15 @@ class WGAN_GP(object):
             self.sample_z_ = self.sample_z_.cuda()
 
     def train(self):
+        # save_dir_images = os.path.join(self.result_dir, self.dataset, self.model_name, 'images_generated')
+        save_dir_plots = os.path.join(self.result_dir, self.dataset, self.model_name, 'plots')
+
+        # if not os.path.exists(save_dir_images):
+        #     os.makedirs(save_dir_images)
+
+        if not os.path.exists(save_dir_plots):
+            os.makedirs(save_dir_plots)
+
         self.train_hist = {}
         self.train_hist['D_loss'] = []
         self.train_hist['G_loss'] = []
@@ -204,7 +213,7 @@ class WGAN_GP(object):
         self.save()
         utils.generate_animation(self.result_dir + '/' + self.dataset + '/' + self.model_name + '/' + self.model_name,
                                  self.epoch)
-        utils.loss_plot(self.train_hist, os.path.join(self.save_dir, self.dataset, self.model_name), self.model_name)
+        utils.loss_plot(self.train_hist, save_dir_plots)
 
     def visualize_results(self, epoch, fix=True):
         self.G.eval()
@@ -240,6 +249,7 @@ class WGAN_GP(object):
     def save(self):
         save_dir_g = os.path.join(self.save_dir, self.dataset, self.model_name + '_G')
         save_dir_d = os.path.join(self.save_dir, self.dataset, self.model_name + '_D')
+        save_dir_hist = os.path.join(self.save_dir, self.dataset, self.model_name + '_History')
 
         if not os.path.exists(save_dir_g):
             os.makedirs(save_dir_g)
@@ -247,10 +257,13 @@ class WGAN_GP(object):
         if not os.path.exists(save_dir_d):
             os.makedirs(save_dir_d)
 
+        if not os.path.exists(save_dir_hist):
+            os.makedirs(save_dir_hist)
+
         torch.save(self.G.state_dict(), os.path.join(save_dir_g, self.model_name + '_G.pkl'))
         torch.save(self.D.state_dict(), os.path.join(save_dir_d, self.model_name + '_D.pkl'))
 
-        with open(os.path.join(save_dir, self.model_name + '_history.pkl'), 'wb') as f:
+        with open(os.path.join(save_dir_hist, self.model_name + '_history.pkl'), 'wb') as f:
             pickle.dump(self.train_hist, f)
 
     def load(self):
