@@ -47,7 +47,7 @@ def visualize_all_sample(z_latent, model_name, count):
     z_samples = z_latent.view(-1, z_dim)
     samples = model.decode(z_samples)
     
-    samples = normalize(samples)
+    # samples = normalize(samples)
 
     for sample in samples:
         count += 1
@@ -66,7 +66,7 @@ def visualize_gan_all_sample(z_latent, model_name, count):
     z_samples = z_latent.view(-1, z_dim)
     samples = model(z_samples.cpu())
 
-    samples = normalize(samples)
+    # samples = normalize(samples)
 
     for sample in samples:
         count += 1
@@ -89,9 +89,9 @@ def visualize_sample(z_latent, model_name, epsilon = 0, dim_eps = 5):
     z_samples = torch.transpose(z_samples, 0, 1)
 
     samples = model.decode(z_samples)
-    pdb.set_trace()
+    # pdb.set_trace()
     # print('shape', samples.view(-1, input_size, input_size).shape)
-    samples = normalize(samples.detach().cpu().numpy())
+    # samples = normalize(samples.detach().cpu().numpy())
     # samples = F.normalize(samples.detach().cpu().numpy(), mu, var)
 
     samples = samples.cpu().data.numpy().transpose(0, 2, 3, 1)
@@ -124,7 +124,7 @@ def visualize_gan_sample(z_latent, model_name, epsilon = 0, dim_eps = 5):
 
     samples = model(z_samples.cpu())
     
-    samples = normalize(samples)
+    # samples = normalize(samples)
 
     samples = samples.cpu().data.numpy().transpose(0, 2, 3, 1)
 
@@ -154,10 +154,10 @@ def generate_sample(z_latent, model_name, epsilon = 0, dim_eps = 5):
 
     samples = model.decode(z_samples)
 
-    samples = normalize(samples)
+    # samples = normalize(samples)
 
-    samples = samples[7].view(1, 3, input_size, input_size)
-    samples = samples.cpu().data.numpy() #.transpose(0, 2, 3, 1)
+    # samples = samples[7].view(1, 3, input_size, input_size)
+    # samples = samples.cpu().data.numpy() #.transpose(0, 2, 3, 1)
 
     # samples = (samples + 1) / 2
 
@@ -176,10 +176,10 @@ def generate_gan_sample(z_latent, model_name, epsilon = 0, dim_eps = 5):
 
     samples = model(z_samples.cpu())
     
-    samples = normalize(samples)
+    # samples = normalize(samples)
 
-    samples = samples[7].view(1, 3, input_size, input_size)
-    samples = samples.cpu().data.numpy() #.transpose(0, 2, 3, 1)
+    # samples = samples[7].view(1, 3, input_size, input_size)
+    # samples = samples.cpu().data.numpy() #.transpose(0, 2, 3, 1)
 
     # samples = (samples + 1) / 2
 
@@ -235,25 +235,32 @@ if __name__ == "__main__":
 
     print('print samples with epsilon')
     image_frame_dim = int(np.floor(np.sqrt(z_dim)))
-    epsilon = [0.9]
+    epsilon = [0.5, 1]
     for eps in epsilon:
-        samples = np.ndarray((z_dim, 3, input_size, input_size))
+        samples = np.ndarray((batch_size, z_dim, 3, input_size, input_size))
         for dim_eps in range(z_dim):
-            new_sample = generate_sample(z_latent, model_name, eps, dim_eps)
-            samples[dim_eps] = new_sample
+            new_samples = generate_sample(z_latent, model_name, eps, dim_eps)
+            for cpt in range(batch_size):
+                pdb.set_trace()
+                new_s = samples[cpt]
+                new_s = new_s.view(1, 3, input_size, input_size)
+                new_s = new_s.cpu().data.numpy() 
+                samples[cpt][dim_eps] = new_s
     
-        samples = samples[:image_frame_dim * image_frame_dim]
-        samples = samples.transpose(0, 2, 3, 1)
+        # pdb.set_trace()
+        for cpt in range(batch_size):
+            print_samples = samples[cpt][:image_frame_dim * image_frame_dim]
+            print_samples = print_samples.transpose(0, 2, 3, 1)
 
-        utils.save_images(samples, [image_frame_dim, image_frame_dim],
-                        samples_dir + '/' + model_name + '/' + model_name + '_eps' + str(eps) + '.png')
+            utils.save_images(print_samples, [image_frame_dim, image_frame_dim],
+                            samples_dir + '/' + model_name + '/' + model_name + '_eps' + str(eps) + '_image' + str(cpt) +'.png')
 
 
     
     print('WGAN_GP_G')
     model_name = 'WGAN_GP_G'
-    input_size = 28
-    model = generator(input_dim=z_dim, output_dim=3, input_size=28)
+    input_size = 32
+    model = generator(input_dim=z_dim, output_dim=3, input_size=input_size)
 
     load(model_name)
     model.eval()
@@ -267,18 +274,23 @@ if __name__ == "__main__":
 
     print('print samples with epsilon')
     for eps in epsilon:
-        samples = np.ndarray((z_dim, 3, input_size, input_size))
+        samples = np.ndarray((batch_size, z_dim, 3, input_size, input_size))
         for dim_eps in range(z_dim):
             # pdb.set_trace()
-            new_sample = generate_gan_sample(z_latent, model_name, eps, dim_eps)
-            samples[dim_eps] = new_sample
+            new_samples = generate_gan_sample(z_latent, model_name, eps, dim_eps)
+            for cpt in range(batch_size):
+                
+                new_s = samples[cpt].view(1, 3, input_size, input_size)
+                new_s = new_s.cpu().data.numpy() 
+                samples[cpt][dim_eps] = new_s
     
         # pdb.set_trace()
-        samples = samples[:image_frame_dim * image_frame_dim]
-        samples = samples.transpose(0, 2, 3, 1)
+        for cpt in range(batch_size):
+            print_samples = samples[cpt][:image_frame_dim * image_frame_dim]
+            print_samples = print_samples.transpose(0, 2, 3, 1)
 
-        utils.save_images(samples, [image_frame_dim, image_frame_dim],
-                        samples_dir + '/' + model_name + '/' + model_name + '_eps' + str(eps) + '.png')
+            utils.save_images(print_samples, [image_frame_dim, image_frame_dim],
+                            samples_dir + '/' + model_name + '/' + model_name + '_eps' + str(eps) + '_' + str(cpt) +'.png')
 
 
 
