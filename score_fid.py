@@ -95,8 +95,6 @@ def extract_features(classifier, data_loader):
 def calculate_fid_score(sample_feature_iterator, testset_feature_iterator):
   
     feat_sample = np.asarray([s for s in sample_feature_iterator])
-    import pdb; pdb.set_trace()
-
     mu_sample = np.mean(feat_sample, axis=0)
     sigma_sample = np.cov(feat_sample, rowvar=False)
 
