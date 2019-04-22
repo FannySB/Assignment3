@@ -86,7 +86,7 @@ class WGAN_GP(object):
         self.log_dir = args.log_dir
         self.gpu_mode = args.gpu_mode
         self.model_name = 'WGAN_GP' #args.gan_type
-        self.input_size = args.input_size
+        self.input_size = 32
         self.z_dim = 100
         self.lambda_ = 10
         self.n_critic = 1             # the number of iterations of the critic per generator iteration
