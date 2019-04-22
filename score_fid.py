@@ -6,6 +6,7 @@ import torch
 import classify_svhn
 import numpy as np
 from classify_svhn import Classifier
+from scipy.linalg import sqrtm
 
 SVHN_PATH = "svhn"
 PROCESS_BATCH_SIZE = 32
@@ -84,7 +85,6 @@ def extract_features(classifier, data_loader):
     """
     Iterator of features for each image.
     """
-    # import pdb; pdb.set_trace()
     with torch.no_grad():
         for x, _ in data_loader:
             h = classifier.extract_features(x).numpy()
@@ -92,46 +92,30 @@ def extract_features(classifier, data_loader):
                 yield h[i]
 
 
-def calculate_fid_score(sample_feature_iterator,
-                        testset_feature_iterator):
-    # len_iterator = len(list(testset_feature_iterator))
-    mu_sample = []
-    sigma_sample = []
-    trace_sample = 1
-    counter = 0
-    # import pdb; pdb.set_trace()
-    for feat_sample in sample_feature_iterator:
-        mean = np.mean(feat_sample)
-        var = np.var(feat_sample)
-        mu_sample.append(mean)
-        sigma_sample.append(var)
-        trace_sample = trace_sample * var
-        counter += 1
+def calculate_fid_score(sample_feature_iterator, testset_feature_iterator):
+  
+    feat_sample = np.asarray([s for s in sample_feature_iterator])
+    import pdb; pdb.set_trace()
 
-    mu_test = []
-    sigma_test = []
-    trace_test = 1
-    counter = 0
-    for feat_test in testset_feature_iterator:
-        mu_test.append(np.mean(feat_test))
-        var = np.var(feat_test)
-        sigma_test.append(var)
-        trace_test = trace_test * var
-        counter += 1
+    mu_sample = np.mean(feat_sample, axis=0)
+    sigma_sample = np.cov(feat_sample, rowvar=False)
 
-    a =np.array(sigma_sample)
-    b =np.array(sigma_test)
-    c =a.dot(b)
-    covar = 2*(np.sqrt(c))
-    trace_cov = 1
-    counter = 0
-    for x in covar:
-        trace_cov = trace_cov * x
-        counter += 1
+    feat_test = np.asarray([s for s in testset_feature_iterator])
+    mu_test = np.mean(feat_test, axis=0)
+    sigma_test = np.cov(feat_test, rowvar=False)
 
-    mu_diff = mu_sample - mu_test
+    trace_mu_sample = np.trace(sigma_sample)
+    trace_mu_test = np.trace(sigma_test)
 
-    return mu_diff**2 + trace_sample + trace_test - trace_covar
+    diff_mu = mu_sample - mu_test
+    diff_mu2 = np.dot(diff_mu, diff_mu)
+
+    offset = 0.001
+    covmean, _ = sqrtm((sigma_sample + offset).dot(sigma_test + offset), disp=False)
+    trace_covmean = np.trace(covmean)
+    fid = diff_mu.dot(diff_mu) + trace_mu_sample + trace_mu_test - (2 * trace_covmean)
+
+    return fid
 
 
 if __name__ == "__main__":
@@ -163,9 +147,8 @@ if __name__ == "__main__":
     test_loader = get_test_loader(PROCESS_BATCH_SIZE)
     test_f = extract_features(classifier, test_loader)
 
-    
-    train_loader = get_train_loader(PROCESS_BATCH_SIZE)
-    train_f = extract_features(classifier, train_loader)
+    # train_loader = get_train_loader(PROCESS_BATCH_SIZE)
+    # train_f = extract_features(classifier, train_loader)
 
-    fid_score = calculate_fid_score(train_f, test_f)
+    fid_score = calculate_fid_score(sample_f, test_f)
     print("FID score:", fid_score)
