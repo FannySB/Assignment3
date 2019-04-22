@@ -66,8 +66,6 @@ class discriminator(nn.Module):
 
     def forward(self, input):
 
-        # import pdb; pdb.set_trace()
-
         x = self.conv(input)
         x = x.view(-1, 128 * (self.input_size // 4) * (self.input_size // 4))
         x = self.fc(x)
@@ -82,14 +80,14 @@ class WGAN_GP(object):
         self.batch_size = args.batch_size
         self.save_dir = args.save_dir
         self.result_dir = args.result_dir
-        self.dataset = 'svhn' #args.dataset
+        self.dataset = 'svhn'
         self.log_dir = args.log_dir
         self.gpu_mode = True
-        self.model_name = 'WGAN_GP' #args.gan_type
+        self.model_name = 'WGAN_GP'
         self.input_size = 32
         self.z_dim = 100
         self.lambda_ = 10
-        self.n_critic = 1             # the number of iterations of the critic per generator iteration
+        self.n_critic = 1 
         self.epsilon = args.epsilon
 
         # load dataset
@@ -117,11 +115,7 @@ class WGAN_GP(object):
             self.sample_z_ = self.sample_z_.cuda()
 
     def train(self):
-        # save_dir_images = os.path.join(self.result_dir, self.dataset, self.model_name, 'images_generated')
         save_dir_plots = os.path.join(self.result_dir, self.dataset, self.model_name, 'plots')
-
-        # if not os.path.exists(save_dir_images):
-        #     os.makedirs(save_dir_images)
 
         if not os.path.exists(save_dir_plots):
             os.makedirs(save_dir_plots)
@@ -272,7 +266,4 @@ class WGAN_GP(object):
 
         self.G.load_state_dict(torch.load(os.path.join(save_dir, self.model_name + '_G.pkl')))
         self.D.load_state_dict(torch.load(os.path.join(save_dir, self.model_name + '_D.pkl')))
-
-    # def isentangled_representation (self)
-
 
