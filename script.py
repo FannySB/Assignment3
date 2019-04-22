@@ -48,12 +48,18 @@ def visualize_all_sample(z_latent, model_name, count):
     z_samples = z_latent.view(-1, z_dim)
     samples = model.decode(z_samples)
     
+    
+    # samples = samples.cpu().data.numpy().transpose(0, 2, 3, 1)
+
     # samples = normalize(samples)
 
     for sample in samples:
         count += 1
         if count>1000: break
-        save_image(sample, path + '/' + model_name + '_' + str(count) + '.png')
+        # pdb.set_trace()
+        sample = sample.view(1, 3, input_size, input_size).cpu().data.numpy().transpose(0, 2, 3, 1)
+        utils.save_images(sample, [1, 1], path + '/' + model_name + '_' + str(count) + '.png')
+        # save_image(sample, path + '/' + model_name + '_' + str(count) + '.png')
 
     
 def visualize_gan_all_sample(z_latent, model_name, count):
@@ -66,13 +72,15 @@ def visualize_gan_all_sample(z_latent, model_name, count):
     image_frame_dim = int(np.floor(np.sqrt(tot_num_samples)))
     z_samples = z_latent.view(-1, z_dim)
     samples = model(z_samples.cpu())
+    
 
     # samples = normalize(samples)
 
     for sample in samples:
         count += 1
         if count>1000: break
-        save_image(sample, path + '/' + model_name + '_' + str(count) + '.png')
+        sample = sample.view(1, 3, input_size, input_size).cpu().data.numpy().transpose(0, 2, 3, 1)
+        utils.save_images(sample, [1, 1], path + '/' + model_name + '_' + str(count) + '.png')
 
 
 def visualize_sample(z_latent, model_name, epsilon = 0, dim_eps = 5):
@@ -451,66 +459,148 @@ def img_interpolate(z_1, z_2, alpha):
 
 
 
+def z_eps_gan(z_sample):
+    if not os.path.exists('samples/vae/epsilon/'):
+        os.makedirs('samples/vae/epsilon/')
+    epsilon = [0.5, 1, 1.5, 2, 3]
+    for eps in epsilon:
+        samples1 = []
+        samples2 = []
+        samples3 = []
+        samples4 = []
+        samples5 = []
+        for dim in range(100):
+            noise_copy = Variable(z_sample.clone(), requires_grad=False)
+            # noise_copy[:,i] = noise_copy[:,i] + epsilon
+            # pdb.set_trace()
+            noise_copy = torch.transpose(noise_copy, 0, 1)
+            noise_copy[dim] = noise_copy[dim] + eps
+            noise_copy = torch.transpose(noise_copy, 0, 1)
+            sample = model(noise_copy.cpu())
+            samples1.append(sample[0].cpu().data.numpy())
+            samples2.append(sample[1].cpu().data.numpy())
+            samples3.append(sample[2].cpu().data.numpy())
+            samples4.append(sample[3].cpu().data.numpy())
+            samples5.append(sample[4].cpu().data.numpy())
+
+        samples1 = np.array(samples1)
+        samples2 = np.array(samples2)
+        samples3 = np.array(samples3)
+        samples4 = np.array(samples4)
+        samples5 = np.array(samples5)
+
+        count = 0
+        max_diff = 0
+        for cpt in range(100):
+            for cpt2 in range(100):
+                diff = np.max(abs(samples1[cpt]-samples1[cpt2]))
+                # print('diff', diff)
+                if diff != 0:
+                    count += 1
+                    if diff > max_diff:
+                        max_diff = diff
+        print('epsilon', eps, ' - number of img diff', count, ' - max_diff', max_diff)
+
+
+        image_frame_dim = 10
+        # pdb.set_trace()
+        path = 'samples/vae/epsilon/eps_' + str(eps) + '_1.png'
+        print_samples = samples1[:image_frame_dim * image_frame_dim]
+        print_samples = print_samples.transpose(0, 2, 3, 1)
+        utils.save_images(print_samples, [image_frame_dim, image_frame_dim],path)
+        
+        path = 'samples/vae/epsilon/eps_' + str(eps) + '_2.png'
+        print_samples = samples2[:image_frame_dim * image_frame_dim]
+        print_samples = print_samples.transpose(0, 2, 3, 1)
+        utils.save_images(print_samples, [image_frame_dim, image_frame_dim],path)
+        
+        path = 'samples/vae/epsilon/eps_' + str(eps) + '_3.png'
+        print_samples = samples3[:image_frame_dim * image_frame_dim]
+        print_samples = print_samples.transpose(0, 2, 3, 1)
+        utils.save_images(print_samples, [image_frame_dim, image_frame_dim],path)
+        
+        path = 'samples/vae/epsilon/eps_' + str(eps) + '_4.png'
+        print_samples = samples4[:image_frame_dim * image_frame_dim]
+        print_samples = print_samples.transpose(0, 2, 3, 1)
+        utils.save_images(print_samples, [image_frame_dim, image_frame_dim],path)
+        
+        path = 'samples/vae/epsilon/eps_' + str(eps) + '_5.png'
+        print_samples = samples5[:image_frame_dim * image_frame_dim]
+        print_samples = print_samples.transpose(0, 2, 3, 1)
+        utils.save_images(print_samples, [image_frame_dim, image_frame_dim],path)
+
+
 
 def z_eps(z_sample):
-    if not os.path.exists('samples/vae/latent/'):
-        os.makedirs('samples/vae/latent/')
-    samples1 = []
-    samples2 = []
-    samples3 = []
-    samples4 = []
-    samples5 = []
-    epsilon = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+    if not os.path.exists('samples/vae/epsilon/'):
+        os.makedirs('samples/vae/epsilon/')
+    epsilon = [100000000000]
     for eps in epsilon:
-        
-        noise_copy = Variable(noise.clone(), requires_grad=False)
-        # noise_copy[:,i] = noise_copy[:,i] + epsilon
+        samples1 = []
+        samples2 = []
+        samples3 = []
+        samples4 = []
+        samples5 = []
+        for dim in range(100):
+            noise_copy = Variable(z_sample.clone(), requires_grad=False)
+            # noise_copy[:,i] = noise_copy[:,i] + epsilon
+            # pdb.set_trace()
+            noise_copy = torch.transpose(noise_copy, 0, 1)
+            noise_copy[dim] = noise_copy[dim] + eps
+            noise_copy = torch.transpose(noise_copy, 0, 1)
+            sample = model.decode(noise_copy)
+            samples1.append(sample[0].cpu().data.numpy())
+            samples2.append(sample[1].cpu().data.numpy())
+            samples3.append(sample[2].cpu().data.numpy())
+            samples4.append(sample[3].cpu().data.numpy())
+            samples5.append(sample[4].cpu().data.numpy())
+
+        samples1 = np.array(samples1)
+        samples2 = np.array(samples2)
+        samples3 = np.array(samples3)
+        samples4 = np.array(samples4)
+        samples5 = np.array(samples5)
+
+        count = 0
+        max_diff = 0
+        for cpt in range(100):
+            for cpt2 in range(100):
+                diff = np.max(abs(samples1[cpt]-samples1[cpt2]))
+                # print('diff', diff)
+                if diff != 0:
+                    count += 1
+                    if diff > max_diff:
+                        max_diff = diff
+        print('epsilon', eps, ' - number of img diff', count, ' - max_diff', max_diff)
+
+
+        image_frame_dim = 10
         # pdb.set_trace()
-        noise_copy = torch.transpose(noise_copy, 0, 1)
-        noise_copy[i] = noise_copy[i] + epsilon
-        noise_copy = torch.transpose(noise_copy, 0, 1)
-        out = out.reshape(64, z_dim)
-        sample = model.decode(out)
-        samples1.append(sample[0].cpu().data.numpy())
-        samples2.append(sample[1].cpu().data.numpy())
-        samples3.append(sample[2].cpu().data.numpy())
-        samples4.append(sample[3].cpu().data.numpy())
-        samples5.append(sample[4].cpu().data.numpy())
+        path = 'samples/vae/epsilon/eps_' + str(eps) + '_1.png'
+        print_samples = samples1[:image_frame_dim * image_frame_dim]
+        print_samples = print_samples.transpose(0, 2, 3, 1)
+        utils.save_images(print_samples, [image_frame_dim, image_frame_dim],path)
+        
+        path = 'samples/vae/epsilon/eps_' + str(eps) + '_2.png'
+        print_samples = samples2[:image_frame_dim * image_frame_dim]
+        print_samples = print_samples.transpose(0, 2, 3, 1)
+        utils.save_images(print_samples, [image_frame_dim, image_frame_dim],path)
+        
+        path = 'samples/vae/epsilon/eps_' + str(eps) + '_3.png'
+        print_samples = samples3[:image_frame_dim * image_frame_dim]
+        print_samples = print_samples.transpose(0, 2, 3, 1)
+        utils.save_images(print_samples, [image_frame_dim, image_frame_dim],path)
+        
+        path = 'samples/vae/epsilon/eps_' + str(eps) + '_4.png'
+        print_samples = samples4[:image_frame_dim * image_frame_dim]
+        print_samples = print_samples.transpose(0, 2, 3, 1)
+        utils.save_images(print_samples, [image_frame_dim, image_frame_dim],path)
+        
+        path = 'samples/vae/epsilon/eps_' + str(eps) + '_5.png'
+        print_samples = samples5[:image_frame_dim * image_frame_dim]
+        print_samples = print_samples.transpose(0, 2, 3, 1)
+        utils.save_images(print_samples, [image_frame_dim, image_frame_dim],path)
 
-    samples1 = np.array(samples1)
-    samples2 = np.array(samples2)
-    samples3 = np.array(samples3)
-    samples4 = np.array(samples4)
-    samples5 = np.array(samples5)
-
-    image_frame_dim = len(alphas)
-    # pdb.set_trace()
-    path = 'samples/vae/latent/interpol_z_1.png'
-    print_samples = samples1[:image_frame_dim * 1]
-    print_samples = print_samples.transpose(0, 2, 3, 1)
-    utils.save_images(print_samples, [1, image_frame_dim],path)
-    
-    path = 'samples/vae/latent/interpol_z_2.png'
-    print_samples = samples2[:image_frame_dim * 1]
-    print_samples = print_samples.transpose(0, 2, 3, 1)
-    utils.save_images(print_samples, [1, image_frame_dim],path)
-    
-    path = 'samples/vae/latent/interpol_z_3.png'
-    print_samples = samples3[:image_frame_dim * 1]
-    print_samples = print_samples.transpose(0, 2, 3, 1)
-    utils.save_images(print_samples, [1, image_frame_dim],path)
-    
-    path = 'samples/vae/latent/interpol_z_4.png'
-    print_samples = samples4[:image_frame_dim * 1]
-    print_samples = print_samples.transpose(0, 2, 3, 1)
-    utils.save_images(print_samples, [1, image_frame_dim],path)
-    
-    path = 'samples/vae/latent/interpol_z_5.png'
-    print_samples = samples5[:image_frame_dim * 1]
-    print_samples = print_samples.transpose(0, 2, 3, 1)
-    utils.save_images(print_samples, [1, image_frame_dim],path)
-
-    return out
 
 def load(model_name):
     save_path = os.path.join(save_dir, dataset, model_name)
@@ -532,35 +622,7 @@ if __name__ == "__main__":
         visualize_all_sample(z_latent, model_name, i*64)
 
     print('print samples with epsilon')
-
-    # image_frame_dim = int(np.floor(np.sqrt(z_dim)))
-    # epsilon = [0.3, 0.5]
-    # for eps in epsilon:
-    #     samples = np.ndarray((batch_size, z_dim, 3, input_size, input_size))
-    #     dim_eps = 0
-    #     new_samples = generate_sample(z_latent, model_name, 0, 0)
-    #     for cpt in range(batch_size):
-    #         new_s = new_samples[cpt]
-    #         new_s = new_s.view(1, 3, input_size, input_size)
-    #         new_s = new_s.cpu().data.numpy() 
-    #         samples[cpt][dim_eps] = new_s
-
-    #     for dim_eps in range(1, z_dim):
-    #         new_samples = generate_sample(z_latent, model_name, eps, dim_eps)
-    #         for cpt in range(batch_size):
-    #             # pdb.set_trace()
-    #             new_s = new_samples[cpt]
-    #             new_s = new_s.view(1, 3, input_size, input_size)
-    #             new_s = new_s.cpu().data.numpy() 
-    #             samples[cpt][dim_eps] = new_s
-    
-    #     # pdb.set_trace()
-    #     for cpt in range(batch_size):
-    #         print_samples = samples[cpt][:image_frame_dim * image_frame_dim]
-    #         print_samples = print_samples.transpose(0, 2, 3, 1)
-
-    #         utils.save_images(print_samples, [image_frame_dim, image_frame_dim],
-    #                         samples_dir + '/' + model_name + '/' + model_name + '_eps' + str(eps) + '_image' + str(cpt) +'.png')
+    z_eps(z_latent)
 
     # print('fake sample')
     # img_path = samples_dir + '/' + model_name + '/' + model_name + '_FAKEeps' + str(eps) + '.png'
@@ -590,6 +652,7 @@ if __name__ == "__main__":
         visualize_gan_all_sample(z_latent, model_name, i*64)
 
     print('print samples with epsilon')
+    z_eps_gan(z_latent)
     # for eps in epsilon:
     #     samples = np.ndarray((batch_size, z_dim, 3, input_size, input_size))
     #     dim_eps = 0
