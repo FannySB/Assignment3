@@ -40,5 +40,5 @@ samples/vae/latent/
 samples/WGAN_GP_G/latent/
 
 3. can be run with:
-```python score_fid.py ./fid_samples/vae/```
+```python score_fid.py ./fid_samples/vae/``` and
 ```python score_fid.py ./fid_samples/WGAN_GP_G```
