@@ -8,12 +8,6 @@ class VAE(nn.Module):
     def __init__(self):
         super(VAE, self).__init__()
 
-        # self.fc1 = nn.Linear(784, 400)
-        # self.fc21 = nn.Linear(400, 20)
-        # self.fc22 = nn.Linear(400, 20)
-        # self.fc3 = nn.Linear(20, 400)
-        # self.fc4 = nn.Linear(400, 784)
-
         self.encoder = nn.Sequential(
             nn.Conv2d(1, 32, kernel_size=3),
             nn.ELU(),
@@ -24,7 +18,6 @@ class VAE(nn.Module):
             nn.Conv2d(64, 256, kernel_size=5),
             nn.ELU(),
         )
-            # nn.Linear(256, 2*100)
 
 
         self.encoder_out1 = nn.Linear(256, 100)
@@ -36,23 +29,21 @@ class VAE(nn.Module):
             nn.Conv2d(256, 64, kernel_size=5, padding=4),
             nn.ELU(),
         )
-            # nn.inter(scale_factor=2),  # mode='bilinear'),
-            # Interpolate(scale_factor=2, mode='bilinear'),
+
         self.decoder2 = nn.Sequential(
             nn.Conv2d(64, 32, kernel_size=3, padding=2),
             nn.ELU(),
         )
-            # nn.UpsamplingBilinear2d(scale_factor=2),  # mode='bilinear'),
+
         self.decoder3 = nn.Sequential(
             nn.Conv2d(32, 16, kernel_size=3, padding=2),
             nn.ELU(),
             nn.Conv2d(16, 1, kernel_size=3, padding=2),
-            nn.Sigmoid() # ????
+            nn.Sigmoid()
         )
 
     def encode(self, x):
-        # h1 = F.relu(self.fc1(x))
-        # return self.fc21(h1), self.fc22(h1)
+
         x = x.view(-1, 1, 28, 28)
         x = self.encoder(x)
         x = x.view(-1, 256)
@@ -64,8 +55,6 @@ class VAE(nn.Module):
         return mu + eps*std
 
     def decode(self, z):
-        # h3 = F.relu(self.fc3(z))
-        # return torch.sigmoid(self.fc4(h3))
 
         z = self.decoder_lin(z)
         z = z.view(-1, 256, 1, 1)
