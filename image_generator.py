@@ -28,13 +28,6 @@ n_critic = 5
 sample_z = torch.randn((batch_size, z_dim)).to(device)
 mu = (-1, -1, -1)
 var = (2, 2, 2)
-normalize = transforms.Normalize(mu, var)
-# normalize = transforms.Compose([
-#     transforms.ToPILImage(),
-#     transforms.Normalize((-1, -1, -1), (2, 2, 2)),
-#     transforms.ToTensor()
-# ])
-
 
 
 def visualize_all_sample(z_latent, model_name, count):
@@ -48,11 +41,6 @@ def visualize_all_sample(z_latent, model_name, count):
     z_samples = z_latent.view(-1, z_dim)
     samples = model.decode(z_samples)
     
-    
-    # samples = samples.cpu().data.numpy().transpose(0, 2, 3, 1)
-
-    # samples = normalize(samples)
-
     for sample in samples:
         count += 1
         if count>1000: break
@@ -72,9 +60,6 @@ def visualize_gan_all_sample(z_latent, model_name, count):
     image_frame_dim = int(np.floor(np.sqrt(tot_num_samples)))
     z_samples = z_latent.view(-1, z_dim)
     samples = model(z_samples.cpu())
-    
-
-    # samples = normalize(samples)
 
     for sample in samples:
         count += 1
@@ -98,10 +83,6 @@ def visualize_sample(z_latent, model_name, epsilon = 0, dim_eps = 5):
     z_samples = torch.transpose(z_samples, 0, 1)
 
     samples = model.decode(z_samples)
-    # pdb.set_trace()
-    # print('shape', samples.view(-1, input_size, input_size).shape)
-    # samples = normalize(samples.detach().cpu().numpy())
-    # samples = F.normalize(samples.detach().cpu().numpy(), mu, var)
 
     samples = samples.cpu().data.numpy().transpose(0, 2, 3, 1)
 
@@ -132,17 +113,12 @@ def visualize_gan_sample(z_latent, model_name, epsilon = 0, dim_eps = 5):
     z_samples = torch.transpose(z_samples, 0, 1)
 
     samples = model(z_samples.cpu())
-    
-    # samples = normalize(samples)
-
     samples = samples.cpu().data.numpy().transpose(0, 2, 3, 1)
 
-    # samples = (samples + 1) / 2
 
     if epsilon != 0:
         utils.save_images(samples[:image_frame_dim * image_frame_dim, :, :, :], [image_frame_dim, image_frame_dim],
                         samples_dir + '/' + model_name + '/' + model_name + '_eps' + str(epsilon) + '_dim' + str(dim_eps) + '.png')
-        # save_image(samples_[0], samples_dir + '/' + model_name + '/' + model_name + '_eps' + str(epsilon) + '_dim' + str(dim_eps) + '.png')
     else:
         utils.save_images(samples[:image_frame_dim * image_frame_dim, :, :, :], [image_frame_dim, image_frame_dim],
                         path + '/' + model_name + '.png')
@@ -150,79 +126,6 @@ def visualize_gan_sample(z_latent, model_name, epsilon = 0, dim_eps = 5):
     return samples
 
 
-def generate_sample(z_latent, model_name, epsilon = 0, dim_eps = 5):
-    dir_recon = 'latent_z'
-    if not os.path.exists(samples_dir + '/' + model_name):
-        os.makedirs(samples_dir + '/' + model_name)
-
-    z_samples = z_latent.view(-1, z_dim)
-
-    z_samples = torch.transpose(z_samples, 0, 1)
-    z_samples[dim_eps] = z_samples[dim_eps] + epsilon
-    z_samples = torch.transpose(z_samples, 0, 1)
-
-    samples = model.decode(z_samples)
-
-    # samples = normalize(samples)
-
-    # samples = samples[7].view(1, 3, input_size, input_size)
-    # samples = samples.cpu().data.numpy() #.transpose(0, 2, 3, 1)
-
-    # samples = (samples + 1) / 2
-
-    return samples
-
-def generate_gan_sample(z_latent, model_name, epsilon = 0, dim_eps = 5):
-    dir_recon = 'latent_z'
-    if not os.path.exists(samples_dir + '/' + model_name):
-        os.makedirs(samples_dir + '/' + model_name)
-
-    z_samples = z_latent.view(-1, z_dim)
-
-    z_samples = torch.transpose(z_samples, 0, 1)
-    z_samples[dim_eps] = z_samples[dim_eps] + epsilon
-    z_samples = torch.transpose(z_samples, 0, 1)
-
-    samples = model(z_samples.cpu())
-    
-    # samples = normalize(samples)
-
-    # samples = samples[7].view(1, 3, input_size, input_size)
-    # samples = samples.cpu().data.numpy() #.transpose(0, 2, 3, 1)
-
-    # samples = (samples + 1) / 2
-
-    return samples
-
-def make_100_perturbations_vae(noise,epsilon):
-    list_img = []
-    for i in range(100):
-        noise_copy = Variable(noise.clone(), requires_grad=False)
-        # noise_copy[:,i] = noise_copy[:,i] + epsilon
-        # pdb.set_trace()
-        noise_copy = torch.transpose(noise_copy, 0, 1)
-        noise_copy[i] = noise_copy[i] + epsilon
-        noise_copy = torch.transpose(noise_copy, 0, 1)
-
-        fake = model.decode(noise_copy)
-        fake = fake[0].detach().cpu().numpy()
-        list_img.append(fake)
-    fake_dis = torch.tensor(list_img)
-    return fake_dis
-
-def img_interpolate(img1, img2, alpha):
-    img1 = img1.flatten()
-    img2 = img2.flatten()
-
-    out = alpha * (img1) + (1 - alpha) * (img2)
-
-    out = out.reshape(64, input_size, input_size, 3)
-
-    path = 'results/svhn/vae/latent/interpol.png'
-
-    utils.save_images(out[:8 * 8, :, :, :], [8, 8], path)
-
-    return out
 
 def z_gan_interpolate(z_1, z_2, alpha):
     if not os.path.exists('samples/WGAN_GP_G/latent/'):
@@ -252,7 +155,6 @@ def z_gan_interpolate(z_1, z_2, alpha):
     samples5 = np.array(samples5)
 
     image_frame_dim = len(alphas)
-    # pdb.set_trace()
     path = 'samples/WGAN_GP_G/latent/interpol_z_1.png'
     print_samples = samples1[:image_frame_dim * 1]
     print_samples = print_samples.transpose(0, 2, 3, 1)
@@ -285,8 +187,6 @@ def z_gan_interpolate(z_1, z_2, alpha):
 def img_gan_interpolate(z_1, z_2, alpha):
     if not os.path.exists('samples/WGAN_GP_G/latent/'):
         os.makedirs('samples/WGAN_GP_G/latent/')
-    # z_1 = z_1.flatten()
-    # z_2 = z_2.flatten()
     samples1 = []
     samples2 = []
     samples3 = []
@@ -455,10 +355,6 @@ def img_interpolate(z_1, z_2, alpha):
     return out
 
 
-
-
-
-
 def z_eps_gan(z_sample):
     if not os.path.exists('samples/WGAN_GP_G/epsilon/'):
         os.makedirs('samples/WGAN_GP_G/epsilon/')
@@ -624,16 +520,11 @@ if __name__ == "__main__":
     print('print samples with epsilon')
     z_eps(z_latent)
 
-    # print('fake sample')
-    # img_path = samples_dir + '/' + model_name + '/' + model_name + '_FAKEeps' + str(eps) + '.png'
-    # fake_dis = make_100_perturbations_vae(z_latent,epsilon=10)
-    # save_image(make_grid(fake_dis, padding=1,normalize=True,nrow=10),img_path)
-
-    # print('interpolate')
-    # z_latent = torch.randn((batch_size, z_dim)).to(device)
-    # z_latent2 = torch.randn((batch_size, z_dim)).to(device)
-    # z_interpolate(z_latent, z_latent2, 0)
-    # img_interpolate(z_latent, z_latent2, 0)
+    print('interpolate')
+    z_latent = torch.randn((batch_size, z_dim)).to(device)
+    z_latent2 = torch.randn((batch_size, z_dim)).to(device)
+    z_interpolate(z_latent, z_latent2, 0)
+    img_interpolate(z_latent, z_latent2, 0)
 
     
     print('WGAN_GP_G')
@@ -653,57 +544,11 @@ if __name__ == "__main__":
 
     print('print samples with epsilon')
     z_eps_gan(z_latent)
-    # for eps in epsilon:
-    #     samples = np.ndarray((batch_size, z_dim, 3, input_size, input_size))
-    #     dim_eps = 0
-    #     new_samples = generate_gan_sample(z_latent, model_name, 0, 0)
-    #     for cpt in range(batch_size):
-    #         new_s = new_samples[cpt]
-    #         new_s = new_s.view(1, 3, input_size, input_size)
-    #         new_s = new_s.cpu().data.numpy() 
-    #         samples[cpt][dim_eps] = new_s
-
-    #     for dim_eps in range(1, z_dim):
-    #         # pdb.set_trace()
-    #         new_samples = generate_gan_sample(z_latent, model_name, eps, dim_eps)
-    #         for cpt in range(batch_size):
-    #             new_s = new_samples[cpt]
-    #             new_s = new_s.view(1, 3, input_size, input_size)
-    #             new_s = new_s.cpu().data.numpy() 
-    #             samples[cpt][dim_eps] = new_s
-    
-    #     # pdb.set_trace()
-    #     for cpt in range(batch_size):
-    #         print_samples = samples[cpt][:image_frame_dim * image_frame_dim]
-    #         print_samples = print_samples.transpose(0, 2, 3, 1)
-
-    #         utils.save_images(print_samples, [image_frame_dim, image_frame_dim],
-    #                         samples_dir + '/' + model_name + '/' + model_name + '_eps' + str(eps) + '_' + str(cpt) +'.png')
 
 
-    # print('interpolate')
-    # z_latent = torch.randn((batch_size, z_dim)).to(device)
-    # z_latent2 = torch.randn((batch_size, z_dim)).to(device)
-    # z_gan_interpolate(z_latent, z_latent2, 0)
-    # img_gan_interpolate(z_latent, z_latent2, 0)
-
-
-    ### Sanity check
-    # def testrec(input, dim_eps):
-    #
-    #     if dim_eps < 99:
-    #         output = visualize_sample(input, model_name, 10, dim_eps)
-    #         return (testrec(output, dim_eps+1))
-    #     else:
-    #         return visualize_sample(input, model_name, 10, dim_eps)
-    #
-    # final = testrec(z_latent, 0)
-    # print(final)
-
-
-    # epsilon = 10000
-    # for dim_eps in range(z_dim):
-    #     visualize_sample(z_latent, model_name, epsilon, dim_eps)
-
-
+    print('interpolate')
+    z_latent = torch.randn((batch_size, z_dim)).to(device)
+    z_latent2 = torch.randn((batch_size, z_dim)).to(device)
+    z_gan_interpolate(z_latent, z_latent2, 0)
+    img_gan_interpolate(z_latent, z_latent2, 0)
 
