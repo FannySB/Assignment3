@@ -2,15 +2,15 @@
 IFT6135 - Representation Learning final assignment
 
 
-Question 1:
+**Question 1:
 
 Number 1.3 can be run with:
-python train_uniform.py
+```python train_uniform.py```
 
 Number 1.4 can be run with:
 python density_estimation.py
 
-Question 2:
+**Question 2:
 
 Number 1 can be run with:
 python vae_mnist/main.py
@@ -18,7 +18,7 @@ python vae_mnist/main.py
 Number 2 can be run with:
 python vae_mnist/main.py
 
-Question 3:
+**Question 3:
 
 Number 1 can be run with:
 python image_generator.py
